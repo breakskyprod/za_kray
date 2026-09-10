@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Плеер</title>
+    <link rel="stylesheet" href="player.css" />
+</head>
+<body>
+    <div class="player" id="player">
+        <video id="videoPlayer" preload="metadata" playsinline></video>
+        <div id="overlay" class="overlay"></div>
+
+        <!-- Всплывающая панель управления -->
+        <div class="controls" id="controls">
+            <!-- Верхняя панель -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <button class="back-home-btn" id="backHomeBtn" title="На главную">
+                        <span class="back-arrow">←</span>
+                        <span class="back-text">На главную</span>
+                    </button>
+                    <button class="restart-btn" id="restartProgressBtn" title="Начать заново">
+                        <span>⟲</span>
+                        <span class="restart-text">Заново</span>
+                    </button>
+                </div>
+
+                <div class="title-block">
+                    <span class="series-title" id="seriesTitleText"></span>
+                    <button class="episode-btn" id="episodeBtn">
+                        Серия <span id="epNumber">1</span> ▾
+                    </button>
+                </div>
+
+                <div class="top-bar-spacer"></div>
+            </div>
+
+            <!-- Нижняя панель -->
+            <div class="bottom-bar">
+                <div class="timeline" id="timeline">
+                    <div class="timeline-buffered" id="timelineBuffered"></div>
+                    <div class="timeline-progress" id="timelineProgress"></div>
+                    <div class="timeline-thumb" id="timelineThumb"></div>
+                </div>
+                <div class="buttons-row">
+                    <button class="ctrl-btn" id="playPauseBtn" title="Воспроизведение">▶</button>
+                    <div class="time-display">
+                        <span id="currentTime">0:00</span>
+                        <span class="sep">/</span>
+                        <span id="duration">0:00</span>
+                    </div>
+                    <div class="volume-block">
+                        <button class="ctrl-btn" id="volumeBtn" title="Громкость">🔊</button>
+                        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" />
+                    </div>
+                    <div class="spacer"></div>
+                    <button class="ctrl-btn" id="fullscreenBtn" title="На весь экран">⛶</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Попап выбора серии -->
+        <div class="episodes-popup hidden" id="episodesPopup">
+            <div class="popup-header">
+                <h3>Выбор серии</h3>
+                <button class="popup-close" id="popupClose">✕</button>
+            </div>
+            <div class="popup-list" id="popupList"></div>
+        </div>
+
+        <!-- Сообщение о конце -->
+        <div id="endMessage" class="end-message hidden">
+            <h2>Конец</h2>
+            <div class="end-buttons">
+                <button id="restartBtn">Посмотреть заново</button>
+                <button id="backBtn">К сериям</button>
+            </div>
+        </div>
+    </div>
+    <script src="player.js"></script>
+</body>
+</html>

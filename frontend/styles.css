@@ -1,0 +1,372 @@
+/* Общие сбросы */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background: #0b0b1a;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== Верхняя область (карусель) ===== */
+.hero {
+    position: relative;
+    width: 100%;
+    height: 65vh;
+    min-height: 420px;
+    background: #0b0b1a;
+    overflow: hidden;
+}
+
+.hero-slider {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Слайды */
+.hero-slider .slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+    z-index: 0;
+}
+
+.hero-slider .slide.active {
+    opacity: 1;
+    z-index: 1;
+}
+
+/* Затемнение поверх слайдов (радиальное – плотнее в центре) */
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(11, 11, 26, 0.85) 0%,
+        rgba(11, 11, 26, 0.55) 45%,
+        rgba(11, 11, 26, 0.85) 100%
+    );
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Индикаторы (точки) */
+.slider-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 4;
+}
+
+.slider-dots .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.slider-dots .dot.active {
+    background: #f7b733;
+    transform: scale(1.2);
+}
+
+/* ===== Центральный контент на карусели ===== */
+.hero-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    text-align: center;
+    width: 100%;
+    max-width: 750px;
+    padding: 20px;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 18px;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1.15;
+    text-shadow: 0 4px 30px rgba(0,0,0,0.5);
+}
+
+.hero-meta {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+}
+
+.age-rating {
+    display: inline-block;
+    background: rgba(220, 20, 20, 0.9);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.genres {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.genre-tag {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    color: #eee;
+    backdrop-filter: blur(6px);
+}
+
+.hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.btn-watch {
+    padding: 16px 44px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 60px;
+    background: linear-gradient(135deg, #f7b733, #fc4a1a);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 30px rgba(252, 74, 26, 0.4);
+}
+
+.btn-watch:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 40px rgba(252, 74, 26, 0.6);
+}
+
+.btn-share {
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 60px;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(8px);
+}
+
+.btn-share:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: #f7b733;
+}
+
+/* ===== Основной контент ===== */
+.main-content {
+    max-width: 1100px;
+    margin: 40px auto 0;
+    padding: 0 20px 40px;
+    width: 100%;
+}
+
+/* ===== Серии (карусель карточек) ===== */
+.episodes-section {
+    margin-bottom: 40px;
+}
+
+.episodes-section h2 {
+    font-size: 1.8rem;
+    margin-bottom: 18px;
+    color: #ddd;
+    font-weight: 400;
+}
+
+.episodes-carousel {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: #f7b733 transparent;
+}
+
+.episodes-carousel::-webkit-scrollbar {
+    height: 8px;
+}
+.episodes-carousel::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+}
+.episodes-carousel::-webkit-scrollbar-thumb {
+    background: rgba(247, 183, 51, 0.5);
+    border-radius: 10px;
+}
+
+.episode-card {
+    flex: 0 0 280px;
+    height: 165px;
+    border-radius: 14px;
+    position: relative;
+    cursor: pointer;
+    scroll-snap-align: start;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background: linear-gradient(145deg, #1a1a3e, #0b0b1a);
+    background-size: cover;
+    background-position: center;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+.episode-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(247, 183, 51, 0.25);
+    border-color: rgba(247, 183, 51, 0.5);
+}
+
+.episode-card .ep-number-badge {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    z-index: 2;
+}
+
+.episode-card .ep-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0) 50%);
+    z-index: 1;
+}
+
+.loading-text {
+    color: #888;
+    padding: 20px 0;
+}
+
+/* ===== Описание (сворачиваемое с тенью) ===== */
+.description-section {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 20px;
+    overflow: hidden;
+    padding: 16px 20px;
+    max-width: 900px;
+}
+
+.description-header h2 {
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: #ddd;
+    margin: 0 0 12px 0;
+}
+
+.description-body {
+    position: relative;
+    max-height: 100px;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+}
+
+.description-body.expanded {
+    max-height: 2000px;
+}
+
+.description-body::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50px;
+    background: linear-gradient(to bottom, transparent, rgba(11, 11, 26, 1));
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.description-body.expanded::after {
+    opacity: 0;
+}
+
+.description-body p {
+    color: #bbb;
+    line-height: 1.7;
+    font-size: 1.05rem;
+    margin: 0;
+}
+
+.desc-toggle-btn {
+    display: block;
+    margin-top: 10px;
+    background: transparent;
+    border: none;
+    color: #f7b733;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 6px 0;
+    transition: 0.2s;
+}
+
+.desc-toggle-btn:hover {
+    color: #fc4a1a;
+}
+
+/* ===== Адаптив ===== */
+@media (max-width: 700px) {
+    .hero { height: 55vh; min-height: 360px; }
+    .hero-title { font-size: 2.3rem; }
+    .age-rating { font-size: 0.85rem; }
+    .genre-tag { font-size: 0.8rem; padding: 4px 10px; }
+    .btn-watch { padding: 13px 32px; font-size: 1.1rem; }
+    .btn-share { padding: 13px 22px; font-size: 1rem; }
+    .episodes-section h2 { font-size: 1.4rem; }
+    .episode-card { flex: 0 0 220px; height: 130px; }
+    .description-body { max-height: 80px; }
+}

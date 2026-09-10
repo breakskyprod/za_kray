@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Интерактивный сериал</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <!-- Верхний блок – карусель с центральным контентом -->
+    <header class="hero" id="hero">
+        <div class="hero-slider" id="heroSlider"></div>
+        <div class="hero-overlay"></div>
+
+        <!-- Центральный контент на карусели -->
+        <div class="hero-content">
+            <h1 class="hero-title" id="seriesTitle">Загрузка...</h1>
+            <div class="hero-meta">
+                <span class="age-rating" id="ageRating">0+</span>
+                <div class="genres">
+                    <span class="genre-tag">Интерактивное кино</span>
+                    <span class="genre-tag">Драма</span>
+                </div>
+            </div>
+            <div class="hero-actions">
+                <button class="btn-watch" id="watchBtn">▶ Смотреть</button>
+                <button class="btn-share" id="shareBtn">Поделиться</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Основной контент ниже карусели -->
+    <main class="main-content">
+        <!-- Серии (карусель карточек) -->
+        <section class="episodes-section">
+            <h2>Серии</h2>
+            <div class="episodes-carousel" id="episodesCarousel">
+                <p class="loading-text">Загрузка серий...</p>
+            </div>
+        </section>
+
+        <!-- Описание -->
+        <section class="description-section" id="descSection">
+            <div class="description-header"><h2>Описание</h2></div>
+            <div class="description-body" id="descBody">
+                <p id="fullDescription">Загрузка описания...</p>
+            </div>
+            <button class="desc-toggle-btn" id="descToggleBtn">Развернуть</button>
+        </section>
+    </main>
+
+    <script src="scripts.js"></script>
+</body>
+</html>
