@@ -11,9 +11,7 @@
         <video id="videoPlayer" preload="metadata" playsinline webkit-playsinline></video>
         <div id="overlay" class="overlay"></div>
 
-        <!-- Всплывающая панель управления -->
         <div class="controls" id="controls">
-            <!-- Верхняя панель -->
             <div class="top-bar">
                 <div class="top-bar-left">
                     <button class="back-home-btn" id="backHomeBtn" title="На главную">
@@ -35,7 +33,7 @@
                 <div class="title-block">
                     <span class="series-title" id="seriesTitleText"></span>
                     <button class="episode-btn" id="episodeBtn">
-                        Серия <span id="epNumber">1</span>
+                        <span>Серия <span id="epNumber">1</span></span>
                         <svg class="icon icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="6 9 12 15 18 9"/>
                         </svg>
@@ -45,7 +43,6 @@
                 <div class="top-bar-spacer"></div>
             </div>
 
-            <!-- Нижняя панель -->
             <div class="bottom-bar">
                 <div class="timeline" id="timeline">
                     <div class="timeline-buffered" id="timelineBuffered"></div>
@@ -69,18 +66,15 @@
                     </div>
                     <div class="volume-block">
                         <button class="ctrl-btn volume-high" id="volumeBtn" title="Громкость">
-                            <!-- Громко -->
                             <svg class="icon icon-vol-high" viewBox="0 0 24 24">
                                 <polygon points="3,9 7,9 12,4 12,20 7,15 3,15" fill="currentColor"/>
                                 <path d="M15.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 <path d="M18 6a8 8 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            <!-- Тихо -->
                             <svg class="icon icon-vol-low" viewBox="0 0 24 24">
                                 <polygon points="3,9 7,9 12,4 12,20 7,15 3,15" fill="currentColor"/>
                                 <path d="M15.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
-                            <!-- Выключено -->
                             <svg class="icon icon-vol-mute" viewBox="0 0 24 24">
                                 <polygon points="3,9 7,9 12,4 12,20 7,15 3,15" fill="currentColor"/>
                                 <line x1="16" y1="8" x2="22" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -102,7 +96,6 @@
             </div>
         </div>
 
-        <!-- Попап выбора серии -->
         <div class="episodes-popup hidden" id="episodesPopup">
             <div class="popup-header">
                 <h3>Выбор серии</h3>
@@ -116,7 +109,6 @@
             <div class="popup-list" id="popupList"></div>
         </div>
 
-        <!-- Сообщение о конце -->
         <div id="endMessage" class="end-message hidden">
             <h2>Конец</h2>
             <div class="end-buttons">
