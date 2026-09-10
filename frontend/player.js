@@ -1,3 +1,19 @@
+// ===== ФИКС ВЫСОТЫ ВЬЮПОРТА ДЛЯ iOS SAFARI =====
+function updateAppHeight() {
+    const h = window.visualViewport
+        ? window.visualViewport.height
+        : window.innerHeight;
+    document.documentElement.style.setProperty('--app-height', h + 'px');
+}
+updateAppHeight();
+window.addEventListener('resize', updateAppHeight);
+window.addEventListener('orientationchange', () => setTimeout(updateAppHeight, 150));
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateAppHeight);
+    window.visualViewport.addEventListener('scroll', updateAppHeight);
+}
+
+// ===== ДАЛЬШЕ ИДЁТ ВЕСЬ ОСТАЛЬНОЙ КОД =====
 const video = document.getElementById('videoPlayer');
 const overlay = document.getElementById('overlay');
 const controls = document.getElementById('controls');
@@ -34,7 +50,6 @@ let isAutoAdvancing = false;
 const params = new URLSearchParams(window.location.search);
 const episodeIdFromUrl = params.get('episodeId');
 
-// ===== ФОРМАТ ВРЕМЕНИ =====
 function formatTime(seconds) {
     if (isNaN(seconds) || seconds < 0) return '0:00';
     const m = Math.floor(seconds / 60);
@@ -42,7 +57,6 @@ function formatTime(seconds) {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-// ===== ПРОГРЕСС В LOCALSTORAGE =====
 function saveProgress(episodeId, glavaId) {
     try {
         localStorage.setItem('series_progress', JSON.stringify({
@@ -62,7 +76,6 @@ function clearProgress() {
     try { localStorage.removeItem('series_progress'); } catch (e) {}
 }
 
-// ===== СПИСОК СЕРИЙ =====
 async function loadSeries() {
     const res = await fetch('/api/series');
     const series = await res.json();
@@ -97,7 +110,6 @@ function renderEpisodesList() {
     });
 }
 
-// ===== ЗАГРУЗКА СЕРИИ =====
 async function loadEpisode(epId, glavaIdToLoad = null) {
     currentEpisodeId = epId;
     const ep = episodesList.find(e => e.id == epId);
@@ -127,7 +139,6 @@ async function loadEpisode(epId, glavaIdToLoad = null) {
     }
 }
 
-// ===== ЗАГРУЗКА ГЛАВЫ =====
 async function loadGlava(glavaId) {
     try {
         const res = await fetch(`/api/glava/${glavaId}`);
@@ -153,7 +164,6 @@ async function loadGlava(glavaId) {
             player.classList.add('show-controls');
         });
 
-        // Области
         transitions = glava.transitions || [];
         overlay.innerHTML = '';
         transitions.forEach(tr => {
@@ -190,14 +200,12 @@ async function loadGlava(glavaId) {
     }
 }
 
-// ===== СЛЕДУЮЩАЯ СЕРИЯ =====
 function findNextEpisode() {
     const idx = episodesList.findIndex(e => e.id == currentEpisodeId);
     if (idx === -1 || idx >= episodesList.length - 1) return null;
     return episodesList[idx + 1];
 }
 
-// ===== АВТОПЕРЕХОД =====
 video.addEventListener('ended', () => {
     if (isAutoAdvancing) return;
     const isFinal = currentGlavaType === 'final' || transitions.length === 0;
@@ -213,7 +221,6 @@ video.addEventListener('ended', () => {
     }
 });
 
-// ===== ТАЙМЛАЙН =====
 video.addEventListener('timeupdate', () => {
     const cur = video.currentTime;
     const dur = video.duration || 0;
@@ -249,7 +256,6 @@ video.addEventListener('progress', () => {
     }
 });
 
-// ===== PLAY / PAUSE =====
 function togglePlay() {
     if (video.paused) video.play();
     else video.pause();
@@ -268,7 +274,6 @@ video.addEventListener('pause', () => {
 playPauseBtn.addEventListener('click', togglePlay);
 video.addEventListener('click', togglePlay);
 
-// ===== ПЕРЕМОТКА =====
 function seekFromEvent(e) {
     const rect = timeline.getBoundingClientRect();
     const clientX = e.clientX ?? (e.touches?.[0]?.clientX ?? 0);
@@ -285,7 +290,6 @@ timeline.addEventListener('touchstart', (e) => { isDraggingTimeline = true; seek
 document.addEventListener('touchmove', (e) => { if (isDraggingTimeline) seekFromEvent(e); }, { passive: true });
 document.addEventListener('touchend', () => { isDraggingTimeline = false; });
 
-// ===== ГРОМКОСТЬ =====
 volumeSlider.addEventListener('input', (e) => {
     video.volume = parseFloat(e.target.value);
     video.muted = video.volume === 0;
@@ -308,12 +312,9 @@ function updateVolumeIcon() {
     }
 }
 
-// Инициализация иконки при старте
 updateVolumeIcon();
 
-// ===== ПОЛНЫЙ ЭКРАН =====
 fullscreenBtn.addEventListener('click', () => {
-    // iOS Safari: только через нативный метод видео
     if (video.webkitEnterFullscreen && !document.fullscreenEnabled) {
         video.webkitEnterFullscreen();
         return;
@@ -325,7 +326,6 @@ fullscreenBtn.addEventListener('click', () => {
     }
 });
 
-// ===== ПОКАЗ/СКРЫТИЕ ПАНЕЛИ =====
 function showControls() {
     controls.classList.add('visible');
     player.classList.add('show-controls');
@@ -346,7 +346,6 @@ player.addEventListener('mouseleave', () => {
     }
 });
 
-// ===== ПОПАП СЕРИЙ =====
 episodeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     episodesPopup.classList.toggle('hidden');
@@ -363,7 +362,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// ===== КНОПКА "НА ГЛАВНУЮ" =====
 backHomeBtn.addEventListener('click', () => {
     if (document.fullscreenElement) {
         document.exitFullscreen().finally(() => { window.location.href = '/'; });
@@ -372,7 +370,6 @@ backHomeBtn.addEventListener('click', () => {
     }
 });
 
-// ===== КНОПКА "ЗАНОВО" =====
 restartProgressBtn.addEventListener('click', () => {
     if (!confirm('Начать сериал заново? Весь прогресс будет сброшен.')) return;
     clearProgress();
@@ -381,18 +378,17 @@ restartProgressBtn.addEventListener('click', () => {
     }
 });
 
-// ===== КОНЕЦ =====
 document.getElementById('restartBtn').addEventListener('click', () => {
     clearProgress();
     if (episodesList.length > 0) {
         loadEpisode(episodesList[0].id, null);
     }
 });
+
 document.getElementById('backBtn').addEventListener('click', () => {
     window.location.href = '/';
 });
 
-// ===== ГОРЯЧИЕ КЛАВИШИ =====
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT') return;
     switch (e.code) {
@@ -404,7 +400,6 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// ===== ЗАПУСК =====
 (async () => {
     await loadSeries();
     const progress = loadProgress();
