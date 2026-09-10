@@ -1,0 +1,123 @@
+{
+  "id": 1,
+  "title": "За край",
+  "description": "В центре повествования — четверо друзей-одноклассников. Каждый из них обладает своими уязвимостями и мечтами, что делает их максимально близкими целевой аудитории. За 4 серии герои проходят путь от обычной школьной жизни до столкновения с серьёзными вызовами — вербовкой в деструктивные группы, вовлечением в распространение наркотиков, кибермошенничеством и участием в незаконных акциях. Зритель принимает решения за каждого из героев в ключевые моменты, и от этих решений зависит, смогут ли друзья сохранить себя, свои отношения и свободу.",
+  "age_rating": "16+",
+  "genres": ["Интерактивное кино", "Драма"],
+  "episodes": [
+    {
+      "id": 1,
+      "episode_number": 1,
+      "title": "1 серия",
+      "cover": "ep1_cover.jpg",
+      "glavas": [
+        { "id": 1, "title": "Начало",        "video": "ep1_start.mp4",  "type": "start" },
+        { "id": 2, "title": "Ветка А",       "video": "ep1_a.mp4",      "type": "ordinary" },
+        { "id": 3, "title": "Ветка Б",       "video": "ep1_b.mp4",      "type": "ordinary" },
+        { "id": 4, "title": "Развилка",      "video": "ep1_c.mp4",      "type": "ordinary" },
+        { "id": 5, "title": "Развилка 2",    "video": "ep1_d.mp4",      "type": "ordinary" },
+        { "id": 6, "title": "Почти финал",   "video": "ep1_e.mp4",      "type": "ordinary" },
+        { "id": 7, "title": "Почти финал 2", "video": "ep1_f.mp4",      "type": "ordinary" },
+        { "id": 8, "title": "Финал серии",   "video": "ep1_final.mp4",  "type": "final" }
+      ],
+      "transitions": [
+        {
+          "from": 1, "to": 2,
+          "area": { "x": 20, "y": 40, "width": 20, "height": 15, "time_start": 5, "time_end": 15, "label": "Пойти налево" }
+        },
+        {
+          "from": 1, "to": 3,
+          "area": { "x": 60, "y": 40, "width": 20, "height": 15, "time_start": 5, "time_end": 15, "label": "Пойти направо" }
+        },
+        {
+          "from": 2, "to": 4,
+          "area": { "x": 30, "y": 50, "width": 25, "height": 20, "time_start": 3, "time_end": 12, "label": "Ответить" }
+        },
+        {
+          "from": 2, "to": 5,
+          "area": { "x": 60, "y": 50, "width": 25, "height": 20, "time_start": 3, "time_end": 12, "label": "Промолчать" }
+        },
+        {
+          "from": 3, "to": 4,
+          "area": { "x": 30, "y": 50, "width": 25, "height": 20, "time_start": 3, "time_end": 12, "label": "Ответить" }
+        },
+        {
+          "from": 3, "to": 5,
+          "area": { "x": 60, "y": 50, "width": 25, "height": 20, "time_start": 3, "time_end": 12, "label": "Промолчать" }
+        },
+        {
+          "from": 4, "to": 6,
+          "area": { "x": 25, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Довериться" }
+        },
+        {
+          "from": 4, "to": 7,
+          "area": { "x": 55, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Уйти" }
+        },
+        {
+          "from": 5, "to": 6,
+          "area": { "x": 25, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Довериться" }
+        },
+        {
+          "from": 5, "to": 7,
+          "area": { "x": 55, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Уйти" }
+        },
+        {
+          "from": 6, "to": 8,
+          "area": { "x": 40, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Финальный шаг" }
+        },
+        {
+          "from": 7, "to": 8,
+          "area": { "x": 40, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Финальный шаг" }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "episode_number": 2,
+      "title": "2 серия",
+      "cover": "ep2_cover.jpg",
+      "glavas": [
+        { "id": 100, "title": "Начало",  "video": "ep2_start.mp4",  "type": "start" },
+        { "id": 101, "title": "Финал",   "video": "ep2_final.mp4",  "type": "final" }
+      ],
+      "transitions": [
+        {
+          "from": 100, "to": 101,
+          "area": { "x": 40, "y": 45, "width": 25, "height": 20, "time_start": 5, "time_end": 15, "label": "Продолжить" }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "episode_number": 3,
+      "title": "3 серия",
+      "cover": "ep3_cover.jpg",
+      "glavas": [
+        { "id": 200, "title": "Начало",  "video": "ep3_start.mp4",  "type": "start" },
+        { "id": 201, "title": "Финал",   "video": "ep3_final.mp4",  "type": "final" }
+      ],
+      "transitions": [
+        {
+          "from": 200, "to": 201,
+          "area": { "x": 40, "y": 45, "width": 25, "height": 20, "time_start": 5, "time_end": 15, "label": "Продолжить" }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "episode_number": 4,
+      "title": "4 серия. Финал",
+      "cover": "ep4_cover.jpg",
+      "glavas": [
+        { "id": 300, "title": "Начало",  "video": "ep4_start.mp4",  "type": "start" },
+        { "id": 301, "title": "Финал",   "video": "ep4_final.mp4",  "type": "final" }
+      ],
+      "transitions": [
+        {
+          "from": 300, "to": 301,
+          "area": { "x": 40, "y": 45, "width": 25, "height": 20, "time_start": 5, "time_end": 15, "label": "Финал" }
+        }
+      ]
+    }
+  ]
+}
