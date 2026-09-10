@@ -62,7 +62,7 @@ function clearProgress() {
     try { localStorage.removeItem('series_progress'); } catch (e) {}
 }
 
-// ===== ЗАГРУЗКА СПИСКА СЕРИЙ =====
+// ===== СПИСОК СЕРИЙ =====
 async function loadSeries() {
     const res = await fetch('/api/series');
     const series = await res.json();
@@ -178,7 +178,6 @@ async function loadGlava(glavaId) {
             overlay.appendChild(div);
         });
 
-        // Сохраняем прогресс
         saveProgress(currentEpisodeId, glava.id);
 
         fetch('/api/stats/view', {
@@ -201,20 +200,14 @@ function findNextEpisode() {
 // ===== АВТОПЕРЕХОД =====
 video.addEventListener('ended', () => {
     if (isAutoAdvancing) return;
-
     const isFinal = currentGlavaType === 'final' || transitions.length === 0;
-
     if (!isFinal) return;
 
     const nextEp = findNextEpisode();
     if (nextEp) {
         isAutoAdvancing = true;
-        // Короткая пауза для плавности
-        setTimeout(() => {
-            loadEpisode(nextEp.id, null);
-        }, 500);
+        setTimeout(() => loadEpisode(nextEp.id, null), 500);
     } else {
-        // Последняя серия закончилась — всё
         endMessage.classList.remove('hidden');
         clearProgress();
     }
@@ -263,12 +256,12 @@ function togglePlay() {
 }
 
 video.addEventListener('play', () => {
-    playPauseBtn.textContent = '❚❚';
+    playPauseBtn.classList.add('playing');
     showControls();
 });
 
 video.addEventListener('pause', () => {
-    playPauseBtn.textContent = '▶';
+    playPauseBtn.classList.remove('playing');
     showControls();
 });
 
@@ -305,13 +298,26 @@ volumeBtn.addEventListener('click', () => {
 });
 
 function updateVolumeIcon() {
-    if (video.muted || video.volume === 0) volumeBtn.textContent = '🔇';
-    else if (video.volume < 0.5) volumeBtn.textContent = '🔉';
-    else volumeBtn.textContent = '🔊';
+    volumeBtn.classList.remove('volume-high', 'volume-low', 'volume-mute');
+    if (video.muted || video.volume === 0) {
+        volumeBtn.classList.add('volume-mute');
+    } else if (video.volume < 0.5) {
+        volumeBtn.classList.add('volume-low');
+    } else {
+        volumeBtn.classList.add('volume-high');
+    }
 }
+
+// Инициализация иконки при старте
+updateVolumeIcon();
 
 // ===== ПОЛНЫЙ ЭКРАН =====
 fullscreenBtn.addEventListener('click', () => {
+    // iOS Safari: только через нативный метод видео
+    if (video.webkitEnterFullscreen && !document.fullscreenEnabled) {
+        video.webkitEnterFullscreen();
+        return;
+    }
     if (!document.fullscreenElement) {
         player.requestFullscreen().catch(err => console.log(err));
     } else {
@@ -401,19 +407,14 @@ document.addEventListener('keydown', (e) => {
 // ===== ЗАПУСК =====
 (async () => {
     await loadSeries();
-
-    // Приоритет: сохранённый прогресс → episodeId из URL → первая серия
     const progress = loadProgress();
-
     if (progress && progress.episodeId && progress.glavaId) {
-        // Проверим, что такая серия существует
         const exists = episodesList.some(e => e.id == progress.episodeId);
         if (exists) {
             loadEpisode(progress.episodeId, progress.glavaId);
             return;
         }
     }
-
     if (episodeIdFromUrl) {
         loadEpisode(episodeIdFromUrl, null);
     } else if (episodesList.length > 0) {
