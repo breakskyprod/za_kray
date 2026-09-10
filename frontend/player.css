@@ -5,7 +5,6 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* dvh — динамическая высота вьюпорта без учёта URL-бара iOS Safari */
 html, body {
     width: 100%;
     height: 100vh;
@@ -35,6 +34,14 @@ video {
     display: block;
     object-fit: contain;
     background: #000;
+}
+
+/* ===== Базовые стили SVG-иконок ===== */
+.icon {
+    width: 22px;
+    height: 22px;
+    display: block;
+    flex-shrink: 0;
 }
 
 /* ===== Оверлей интерактивных областей ===== */
@@ -112,7 +119,7 @@ video {
     pointer-events: auto;
 }
 
-/* Верхняя панель — учитывает safe-area сверху и по бокам (iPhone «челка») */
+/* Верхняя панель */
 .top-bar {
     position: absolute;
     top: 0;
@@ -149,10 +156,13 @@ video {
 }
 
 .episode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.22);
     color: #fff;
-    padding: 5px 14px;
+    padding: 5px 12px 5px 14px;
     border-radius: 20px;
     font-size: 0.9rem;
     cursor: pointer;
@@ -166,6 +176,12 @@ video {
     border-color: #f7b733;
 }
 
+.icon-chevron {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+}
+
 /* Группа кнопок слева */
 .top-bar-left {
     display: flex;
@@ -174,41 +190,9 @@ video {
     flex-shrink: 0;
 }
 
-.back-home-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    color: #fff;
-    padding: 7px 14px;
-    border-radius: 30px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: 0.25s;
-    backdrop-filter: blur(8px);
-    font-family: inherit;
-    white-space: nowrap;
-}
-
-.back-home-btn:hover {
-    background: rgba(247, 183, 51, 0.25);
-    border-color: #f7b733;
-}
-
-.back-home-btn .back-arrow {
-    font-size: 1.05rem;
-    line-height: 1;
-    transition: transform 0.25s;
-}
-
-.back-home-btn:hover .back-arrow {
-    transform: translateX(-3px);
-}
-
+.back-home-btn,
 .restart-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
     background: rgba(255, 255, 255, 0.12);
@@ -225,14 +209,21 @@ video {
     white-space: nowrap;
 }
 
+.back-home-btn:hover,
 .restart-btn:hover {
     background: rgba(247, 183, 51, 0.25);
     border-color: #f7b733;
 }
 
-.restart-btn span:first-child {
-    font-size: 1.05rem;
-    line-height: 1;
+.back-home-btn .icon,
+.restart-btn .icon {
+    width: 18px;
+    height: 18px;
+}
+
+.back-home-btn:hover .icon:first-child {
+    transform: translateX(-3px);
+    transition: transform 0.25s;
 }
 
 .top-bar-spacer {
@@ -240,7 +231,7 @@ video {
     flex-shrink: 0;
 }
 
-/* Нижняя панель — учитывает safe-area снизу и по бокам */
+/* Нижняя панель */
 .bottom-bar {
     position: absolute;
     bottom: 0;
@@ -321,15 +312,15 @@ video {
     background: transparent;
     border: none;
     color: #fff;
-    font-size: 1.4rem;
     cursor: pointer;
-    padding: 6px 10px;
+    padding: 6px;
     border-radius: 8px;
     transition: 0.2s;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 42px;
+    min-width: 34px;
+    min-height: 34px;
     font-family: inherit;
 }
 
@@ -337,6 +328,21 @@ video {
     color: #f7b733;
     transform: scale(1.1);
 }
+
+/* Скрываем лишние иконки в кнопке Play/Pause */
+#playPauseBtn .icon-pause { display: none; }
+#playPauseBtn.playing .icon-play { display: none; }
+#playPauseBtn.playing .icon-pause { display: block; }
+
+/* Скрываем лишние иконки в кнопке Volume */
+#volumeBtn .icon-vol-low,
+#volumeBtn .icon-vol-mute { display: none; }
+
+#volumeBtn.volume-low  .icon-vol-high { display: none; }
+#volumeBtn.volume-low  .icon-vol-low  { display: block; }
+
+#volumeBtn.volume-mute .icon-vol-high { display: none; }
+#volumeBtn.volume-mute .icon-vol-mute { display: block; }
 
 .time-display {
     color: #fff;
@@ -355,7 +361,7 @@ video {
 .volume-block {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 #volumeSlider {
@@ -440,12 +446,19 @@ video {
     background: transparent;
     border: none;
     color: #fff;
-    font-size: 1.2rem;
     cursor: pointer;
     opacity: 0.7;
     transition: 0.2s;
-    padding: 4px 8px;
+    padding: 6px;
     border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-close .icon {
+    width: 18px;
+    height: 18px;
 }
 
 .popup-close:hover {
@@ -574,17 +587,20 @@ video {
     .buttons-row { gap: 8px; }
     .time-display { font-size: 0.8rem; min-width: 78px; }
     #volumeSlider { width: 55px; }
-    .ctrl-btn { font-size: 1.2rem; min-width: 34px; padding: 4px 6px; }
+    .ctrl-btn { min-width: 30px; min-height: 30px; padding: 4px; }
+    .ctrl-btn .icon { width: 18px; height: 18px; }
     .popup-list .ep-item .ep-cover { width: 64px; height: 40px; }
     .back-home-btn .back-text { display: none; }
-    .back-home-btn { padding: 8px 12px; }
+    .back-home-btn { padding: 7px 10px; }
     .restart-btn .restart-text { display: none; }
-    .restart-btn { padding: 8px 12px; }
+    .restart-btn { padding: 7px 10px; }
     .top-bar-spacer { width: 42px; }
     .title-block { max-width: 65%; }
+    .episode-btn { font-size: 0.85rem; padding: 4px 10px; }
+    .icon-chevron { width: 14px; height: 14px; }
 }
 
-/* Ландшафт на телефоне — компактнее панели, чтобы всё влезало */
+/* Ландшафт на телефоне */
 @media (max-height: 500px) and (orientation: landscape) {
     .top-bar {
         padding-top: calc(6px + env(safe-area-inset-top, 0px));
@@ -594,9 +610,11 @@ video {
         padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
     }
     .timeline { margin-bottom: 8px; }
-    .ctrl-btn { font-size: 1.15rem; min-width: 32px; }
+    .ctrl-btn { min-width: 28px; min-height: 28px; padding: 4px; }
+    .ctrl-btn .icon { width: 16px; height: 16px; }
     .title-block { gap: 4px; font-size: 0.85rem; }
     .series-title { font-size: 0.85rem; }
     .episode-btn { font-size: 0.8rem; padding: 4px 10px; }
     .back-home-btn, .restart-btn { font-size: 0.8rem; padding: 5px 10px; }
+    .back-home-btn .icon, .restart-btn .icon { width: 15px; height: 15px; }
 }
