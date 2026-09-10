@@ -13,7 +13,20 @@ if (window.visualViewport) {
     window.visualViewport.addEventListener('scroll', updateAppHeight);
 }
 
-// ===== ДАЛЬШЕ ИДЁТ ВЕСЬ ОСТАЛЬНОЙ КОД =====
+// ===== ID ЗРИТЕЛЯ (уникальный для браузера) =====
+function getViewerId() {
+    try {
+        let id = localStorage.getItem('viewer_id');
+        if (!id) {
+            id = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+            localStorage.setItem('viewer_id', id);
+        }
+        return id;
+    } catch (e) {
+        return null;
+    }
+}
+
 const video = document.getElementById('videoPlayer');
 const overlay = document.getElementById('overlay');
 const controls = document.getElementById('controls');
@@ -131,7 +144,9 @@ async function loadEpisode(epId, glavaIdToLoad = null) {
             alert('В этой серии нет глав');
             return;
         }
-        await loadGlava(targetGlava.id);
+
+        // Загружаем главу и помечаем, что это старт серии
+        await loadGlava(targetGlava.id, true);
         renderEpisodesList();
     } catch (err) {
         console.error(err);
@@ -139,7 +154,7 @@ async function loadEpisode(epId, glavaIdToLoad = null) {
     }
 }
 
-async function loadGlava(glavaId) {
+async function loadGlava(glavaId, isEpisodeStart = false) {
     try {
         const res = await fetch(`/api/glava/${glavaId}`);
         if (!res.ok) throw new Error('Глава не найдена');
@@ -183,18 +198,24 @@ async function loadGlava(glavaId) {
 
             div.addEventListener('click', (e) => {
                 e.stopPropagation();
-                loadGlava(tr.to_glava_id);
+                loadGlava(tr.to_glava_id, false);
             });
             overlay.appendChild(div);
         });
 
         saveProgress(currentEpisodeId, glava.id);
 
-        fetch('/api/stats/view', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ glavaId: glava.id })
-        }).catch(() => {});
+        // Статистика: считаем только старт серии, уникальность — по viewerId
+        if (isEpisodeStart) {
+            fetch('/api/stats/view', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    viewerId: getViewerId(),
+                    type: 'start'
+                })
+            }).catch(() => {});
+        }
     } catch (err) {
         console.error(err);
     }
