@@ -2,13 +2,13 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Плеер</title>
     <link rel="stylesheet" href="player.css" />
 </head>
 <body>
     <div class="player" id="player">
-        <video id="videoPlayer" preload="metadata" playsinline></video>
+        <video id="videoPlayer" preload="metadata" playsinline webkit-playsinline></video>
         <div id="overlay" class="overlay"></div>
 
         <!-- Всплывающая панель управления -->
