@@ -160,7 +160,12 @@ body {
     flex-wrap: wrap;
 }
 
+/* ===== Кнопка "Смотреть" с SVG ===== */
 .btn-watch {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
     padding: 16px 44px;
     font-size: 1.3rem;
     font-weight: 700;
@@ -171,6 +176,13 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 8px 30px rgba(252, 74, 26, 0.4);
+    font-family: inherit;
+}
+
+.btn-watch .btn-icon {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
 }
 
 .btn-watch:hover {
@@ -189,6 +201,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(8px);
+    font-family: inherit;
 }
 
 .btn-share:hover {
@@ -352,6 +365,7 @@ body {
     cursor: pointer;
     padding: 6px 0;
     transition: 0.2s;
+    font-family: inherit;
 }
 
 .desc-toggle-btn:hover {
@@ -365,6 +379,7 @@ body {
     .age-rating { font-size: 0.85rem; }
     .genre-tag { font-size: 0.8rem; padding: 4px 10px; }
     .btn-watch { padding: 13px 32px; font-size: 1.1rem; }
+    .btn-watch .btn-icon { width: 18px; height: 18px; }
     .btn-share { padding: 13px 22px; font-size: 1rem; }
     .episodes-section h2 { font-size: 1.4rem; }
     .episode-card { flex: 0 0 220px; height: 130px; }
