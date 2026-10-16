@@ -1,8 +1,14 @@
-// ===== ФИКС ВЫСОТЫ ВЬЮПОРТА ДЛЯ iOS SAFARI =====
+// ============================================================
+//  КОНСТАНТЫ
+// ============================================================
+const SKIP_BUTTON_DELAY = 10;       // за сколько секунд до конца показывать «Следующая серия»
+const PRELOAD_DELAY = 5000;         // через сколько после старта сцены запускать прелоад (мс)
+
+// ============================================================
+//  ФИКС ВЫСОТЫ ВЬЮПОРТА (iOS)
+// ============================================================
 function updateAppHeight() {
-    const h = window.visualViewport
-        ? window.visualViewport.height
-        : window.innerHeight;
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
     document.documentElement.style.setProperty('--app-height', h + 'px');
 }
 updateAppHeight();
@@ -13,7 +19,39 @@ if (window.visualViewport) {
     window.visualViewport.addEventListener('scroll', updateAppHeight);
 }
 
-// ===== ID ЗРИТЕЛЯ (уникальный для браузера) =====
+// ============================================================
+//  БЕЗОПАСНЫЙ PLAY
+// ============================================================
+function safePlay(el) {
+    if (!el) return;
+    try {
+        const p = el.play();
+        if (p && typeof p.catch === 'function') {
+            p.catch(err => {
+                if (err && err.name !== 'AbortError') {
+                    console.warn('play() ошибка:', err);
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('play() выбросил:', e);
+    }
+}
+
+// ============================================================
+//  УТИЛИТА: путь к видео/картинке
+//  Если полный URL (http/https) — используем как есть,
+//  иначе — берём из локальной папки /uploads/
+// ============================================================
+function resolveVideoUrl(video) {
+    if (!video) return '';
+    if (/^https?:\/\//i.test(video)) return video;
+    return `/uploads/${video}`;
+}
+
+// ============================================================
+//  VIEWER ID
+// ============================================================
 function getViewerId() {
     try {
         let id = localStorage.getItem('viewer_id');
@@ -22,12 +60,15 @@ function getViewerId() {
             localStorage.setItem('viewer_id', id);
         }
         return id;
-    } catch (e) {
-        return null;
-    }
+    } catch (e) { return null; }
 }
 
+// ============================================================
+//  DOM
+// ============================================================
 const video = document.getElementById('videoPlayer');
+const insertPlayer = document.getElementById('insertPlayer');
+const choiceAmbient = document.getElementById('choiceAmbient');
 const overlay = document.getElementById('overlay');
 const controls = document.getElementById('controls');
 const player = document.getElementById('player');
@@ -50,19 +91,73 @@ const popupList = document.getElementById('popupList');
 const popupClose = document.getElementById('popupClose');
 const backHomeBtn = document.getElementById('backHomeBtn');
 const restartProgressBtn = document.getElementById('restartProgressBtn');
-
-let currentGlavaId = null;
-let currentGlavaType = null;
-let transitions = [];
-let episodesList = [];
-let currentEpisodeId = null;
-let hideControlsTimeout = null;
-let isDraggingTimeline = false;
-let isAutoAdvancing = false;
+const choiceCountdownEl = document.getElementById('choiceCountdown');
+const countdownNumberEl = document.getElementById('countdownNumber');
+const countdownRingEl = document.getElementById('countdownRing');
+const bufferingSpinner = document.getElementById('bufferingSpinner');
+const skipBtn = document.getElementById('skipBtn');
 
 const params = new URLSearchParams(window.location.search);
 const episodeIdFromUrl = params.get('episodeId');
 
+// ============================================================
+//  СОСТОЯНИЕ
+// ============================================================
+let currentEpisodeId = null;
+let currentSceneId = null;
+let currentScene = null;
+let currentEpisodeScenes = [];
+let episodesList = [];
+let seriesData = null;
+let isInsertPlaying = false;
+let isAutoAdvancing = false;
+let lastTime = 0;
+let hideControlsTimeout = null;
+let isDraggingTimeline = false;
+let skipButtonVisible = false;
+
+const preloadedUrls = new Set();
+
+const sceneChoiceState = {
+    pauseAt: null,
+    triggered: false,
+    resolved: false,
+    timeoutId: null,
+    countdownId: null,
+    timeoutAt: 0,
+    timeoutDuration: 10
+};
+
+const STORAGE_KEY = 'zaykrai_progress';
+
+// ============================================================
+//  СОХРАНЕНИЕ / ЗАГРУЗКА ПРОГРЕССА
+// ============================================================
+function saveProgress() {
+    const data = {
+        episodeId: currentEpisodeId,
+        sceneId: currentSceneId,
+        savedAt: Date.now()
+    };
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {}
+}
+
+function loadProgress() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+}
+
+function clearProgress() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+}
+
+// ============================================================
+//  ФОРМАТ ВРЕМЕНИ
+// ============================================================
 function formatTime(seconds) {
     if (isNaN(seconds) || seconds < 0) return '0:00';
     const m = Math.floor(seconds / 60);
@@ -70,30 +165,158 @@ function formatTime(seconds) {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
 }
 
-function saveProgress(episodeId, glavaId) {
+function getActiveVideo() {
+    return isInsertPlaying ? insertPlayer : video;
+}
+
+// ============================================================
+//  ПРЕДЗАГРУЗКА СЛЕДУЮЩЕЙ СЦЕНЫ
+// ============================================================
+function shouldPreload() {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return true;
+    const et = conn.effectiveType;
+    if (et === 'slow-2g' || et === '2g' || et === '3g') return false;
+    return true;
+}
+
+function preloadNextScene() {
+    const scene = currentScene;
+    if (!scene) return;
+
+    // Определяем ID следующей сцены
+    let nextSceneId = scene.next || null;
+    if (!nextSceneId && scene.choices && scene.choices.length) {
+        // Если по какой-то причине у сцены с выбором нет next — берём из первого выбора
+        const firstChoice = scene.choices[0];
+        nextSceneId = firstChoice.next || null;
+    }
+    if (!nextSceneId) return;
+
+    fetch(`/api/scene/${nextSceneId}`)
+        .then(r => r.json())
+        .then(nextScene => {
+            if (!nextScene.video) return;
+            const url = resolveVideoUrl(nextScene.video);
+            if (preloadedUrls.has(url)) return;
+            preloadedUrls.add(url);
+            console.log(`[preload] Начинаю предзагрузку: ${url}`);
+            fetch(url, { cache: 'force-cache' }).catch(() => {});
+        })
+        .catch(() => {});
+}
+
+// ============================================================
+//  CHOICE STATE
+// ============================================================
+function resetChoiceState() {
+    if (sceneChoiceState.timeoutId) {
+        clearTimeout(sceneChoiceState.timeoutId);
+        sceneChoiceState.timeoutId = null;
+    }
+    if (sceneChoiceState.countdownId) {
+        clearInterval(sceneChoiceState.countdownId);
+        sceneChoiceState.countdownId = null;
+    }
+    sceneChoiceState.pauseAt = null;
+    sceneChoiceState.triggered = false;
+    sceneChoiceState.resolved = false;
+    sceneChoiceState.timeoutAt = 0;
+    sceneChoiceState.timeoutDuration = 10;
+    if (choiceCountdownEl) choiceCountdownEl.classList.add('hidden');
+    stopChoiceAmbient();
+}
+
+function computeChoicePauseAt(scene) {
+    if (!scene) return null;
+    if (typeof scene.pause_at === 'number') return scene.pause_at;
+    if (!scene.choices || !scene.choices.length) return null;
+    const starts = scene.choices
+        .map(c => c.area && c.area.time_start)
+        .filter(t => typeof t === 'number' && !isNaN(t));
+    if (!starts.length) return null;
+    return Math.min(...starts);
+}
+
+// ============================================================
+//  МУЗЫКА НА ВРЕМЯ ВЫБОРА
+// ============================================================
+function startChoiceAmbient() {
+    if (!choiceAmbient) return;
+    if (!choiceAmbient.src) {
+        choiceAmbient.src = '/uploads/choice_ambient.mp3';
+    }
+    choiceAmbient.volume = 0.5;
+    try { choiceAmbient.currentTime = 0; } catch (e) {}
+    safePlay(choiceAmbient);
+}
+
+function stopChoiceAmbient() {
+    if (!choiceAmbient) return;
     try {
-        localStorage.setItem('series_progress', JSON.stringify({
-            episodeId, glavaId, savedAt: Date.now()
-        }));
+        choiceAmbient.pause();
+        choiceAmbient.currentTime = 0;
     } catch (e) {}
 }
 
-function loadProgress() {
-    try {
-        const raw = localStorage.getItem('series_progress');
-        return raw ? JSON.parse(raw) : null;
-    } catch (e) { return null; }
+// ============================================================
+//  КНОПКА «СЛЕДУЮЩАЯ СЕРИЯ»
+// ============================================================
+function showSkipButton() {
+    if (!skipBtn || skipButtonVisible) return;
+    skipButtonVisible = true;
+    skipBtn.classList.remove('hidden');
 }
 
-function clearProgress() {
-    try { localStorage.removeItem('series_progress'); } catch (e) {}
+function hideSkipButton() {
+    if (!skipBtn || !skipButtonVisible) return;
+    skipButtonVisible = false;
+    skipBtn.classList.add('hidden');
 }
 
+function checkSkipButton(cur, dur) {
+    if (!currentScene || currentScene.type !== 'final') {
+        hideSkipButton();
+        return;
+    }
+    if (!dur || dur <= 0) return;
+    const remaining = dur - cur;
+    if (remaining <= SKIP_BUTTON_DELAY && remaining > 0) {
+        showSkipButton();
+    } else if (remaining <= 0) {
+        hideSkipButton();
+    }
+}
+
+function goToNextEpisode() {
+    const idx = episodesList.findIndex(e => e.id == currentEpisodeId);
+    const nextEp = (idx >= 0 && idx < episodesList.length - 1) ? episodesList[idx + 1] : null;
+    if (nextEp) {
+        isAutoAdvancing = true;
+        loadEpisode(nextEp.id, null);
+    } else {
+        endMessage.classList.remove('hidden');
+        clearProgress();
+    }
+}
+
+if (skipBtn) {
+    skipBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hideSkipButton();
+        goToNextEpisode();
+    });
+}
+
+// ============================================================
+//  ЗАГРУЗКА СЕРИАЛА
+// ============================================================
 async function loadSeries() {
     const res = await fetch('/api/series');
-    const series = await res.json();
-    seriesTitleText.textContent = series.title || '';
-    episodesList = series.episodes || [];
+    if (!res.ok) throw new Error('Не удалось загрузить сериал');
+    seriesData = await res.json();
+    if (seriesTitleText) seriesTitleText.textContent = seriesData.title || 'За край';
+    episodesList = seriesData.episodes || [];
     renderEpisodesList();
 }
 
@@ -102,19 +325,14 @@ function renderEpisodesList() {
     episodesList.forEach(ep => {
         const item = document.createElement('div');
         item.className = 'ep-item' + (ep.id == currentEpisodeId ? ' active' : '');
-
         const cover = ep.cover && ep.cover.trim() !== ''
-            ? `/uploads/${ep.cover}`
+            ? resolveVideoUrl(ep.cover)
             : `/images/frame${ep.episode_number}.jpg`;
-
         item.innerHTML = `
             <span class="ep-num">${ep.episode_number}</span>
-            <div class="ep-info">
-                <span class="ep-title">${ep.title || 'Без названия'}</span>
-            </div>
+            <div class="ep-info"><span class="ep-title">${ep.title || 'Без названия'}</span></div>
             <div class="ep-cover" style="background-image: url('${cover}'), linear-gradient(145deg, #1a1a3e, #0b0b1a);"></div>
         `;
-
         item.addEventListener('click', () => {
             loadEpisode(ep.id, null);
             episodesPopup.classList.add('hidden');
@@ -123,30 +341,29 @@ function renderEpisodesList() {
     });
 }
 
-async function loadEpisode(epId, glavaIdToLoad = null) {
+async function loadEpisode(epId, sceneIdToLoad = null) {
     currentEpisodeId = epId;
     const ep = episodesList.find(e => e.id == epId);
-    if (ep) epNumberEl.textContent = ep.episode_number;
+    if (ep && epNumberEl) epNumberEl.textContent = ep.episode_number;
 
     try {
         const res = await fetch(`/api/episode/${epId}`);
         if (!res.ok) throw new Error('Серия не найдена');
         const episode = await res.json();
+        currentEpisodeScenes = episode.scenes || [];
 
-        let targetGlava = null;
-        if (glavaIdToLoad) {
-            targetGlava = episode.glavas.find(g => g.id === glavaIdToLoad);
+        let targetScene = null;
+        if (sceneIdToLoad) {
+            targetScene = currentEpisodeScenes.find(s => s.id === sceneIdToLoad);
         }
-        if (!targetGlava) {
-            targetGlava = episode.glavas.find(g => g.type === 'start') || episode.glavas[0];
+        if (!targetScene) {
+            targetScene = currentEpisodeScenes.find(s => s.type === 'start') || currentEpisodeScenes[0];
         }
-        if (!targetGlava) {
-            alert('В этой серии нет глав');
+        if (!targetScene) {
+            alert('В этой серии нет сцен');
             return;
         }
-
-        // Загружаем главу и помечаем, что это старт серии
-        await loadGlava(targetGlava.id, true);
+        await loadScene(targetScene.id);
         renderEpisodesList();
     } catch (err) {
         console.error(err);
@@ -154,286 +371,588 @@ async function loadEpisode(epId, glavaIdToLoad = null) {
     }
 }
 
-async function loadGlava(glavaId, isEpisodeStart = false) {
+// ============================================================
+//  ЗАГРУЗКА СЦЕНЫ
+// ============================================================
+async function loadScene(sceneId) {
     try {
-        const res = await fetch(`/api/glava/${glavaId}`);
-        if (!res.ok) throw new Error('Глава не найдена');
-        const glava = await res.json();
+        resetChoiceState();
+        hideSkipButton();
+        const res = await fetch(`/api/scene/${sceneId}`);
+        if (!res.ok) throw new Error('Сцена не найдена');
+        const scene = await res.json();
 
-        currentGlavaId = glava.id;
-        currentGlavaType = glava.glava_type;
+        currentSceneId = scene.id;
+        currentScene = scene;
         isAutoAdvancing = false;
         endMessage.classList.add('hidden');
 
-        const url = glava.video_url || '';
-        if (url.trim() !== '') {
-            video.src = url.startsWith('http') ? url : `/uploads/${url}`;
+        if (scene.video && scene.video.trim() !== '') {
+            video.src = resolveVideoUrl(scene.video);
+            video.load();
+            video.play().catch(() => {
+                controls.classList.add('visible');
+                player.classList.add('show-controls');
+            });
         } else {
             video.removeAttribute('src');
             video.load();
         }
 
-        video.load();
-        video.play().catch(() => {
-            controls.classList.add('visible');
-            player.classList.add('show-controls');
-        });
+        buildChoiceAreas(scene);
+        sceneChoiceState.pauseAt = computeChoicePauseAt(scene);
+        sceneChoiceState.timeoutDuration = typeof scene.choice_timeout === 'number'
+            ? scene.choice_timeout
+            : 10;
 
-        transitions = glava.transitions || [];
-        overlay.innerHTML = '';
-        transitions.forEach(tr => {
-            const area = typeof tr.area_data === 'string' ? JSON.parse(tr.area_data) : tr.area_data;
-            const div = document.createElement('div');
-            div.className = 'area';
-            div.style.left = area.x + '%';
-            div.style.top = area.y + '%';
-            div.style.width = area.width + '%';
-            div.style.height = area.height + '%';
-            div.style.display = 'none';
+        lastTime = 0;
+        saveProgress();
 
-            const label = document.createElement('div');
-            label.className = 'label';
-            label.textContent = area.label || 'Выбрать';
-            div.appendChild(label);
-
-            div.addEventListener('click', (e) => {
-                e.stopPropagation();
-                loadGlava(tr.to_glava_id, false);
-            });
-            overlay.appendChild(div);
-        });
-
-        saveProgress(currentEpisodeId, glava.id);
-
-        // Статистика: считаем только старт серии, уникальность — по viewerId
-        if (isEpisodeStart) {
-            fetch('/api/stats/view', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    viewerId: getViewerId(),
-                    type: 'start'
-                })
-            }).catch(() => {});
+        // Запускаем прелоад следующей сцены
+        if (shouldPreload()) {
+            setTimeout(() => preloadNextScene(), PRELOAD_DELAY);
         }
     } catch (err) {
         console.error(err);
     }
 }
 
-function findNextEpisode() {
-    const idx = episodesList.findIndex(e => e.id == currentEpisodeId);
-    if (idx === -1 || idx >= episodesList.length - 1) return null;
-    return episodesList[idx + 1];
+function buildChoiceAreas(scene) {
+    if (!overlay) return;
+    overlay.innerHTML = '';
+    if (!scene.choices) return;
+
+    scene.choices.forEach(choice => {
+        const area = choice.area;
+        if (!area) return;
+        const div = document.createElement('div');
+        div.className = 'area';
+        div.style.left = area.x + '%';
+        div.style.top = area.y + '%';
+        div.style.width = area.width + '%';
+        div.style.height = area.height + '%';
+        div.style.display = 'none';
+        div.dataset.choiceId = choice.id;
+
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = choice.label || '';
+        div.appendChild(label);
+
+        div.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (sceneChoiceState.resolved) return;
+            handleChoice(choice);
+        });
+        overlay.appendChild(div);
+    });
 }
 
-video.addEventListener('ended', () => {
-    if (isAutoAdvancing) return;
-    const isFinal = currentGlavaType === 'final' || transitions.length === 0;
-    if (!isFinal) return;
+// ============================================================
+//  ТРИГГЕР ПАУЗЫ ДЛЯ ВЫБОРА
+// ============================================================
+function triggerChoicePause() {
+    if (!currentScene || !currentScene.choices || sceneChoiceState.resolved) return;
+    sceneChoiceState.triggered = true;
 
-    const nextEp = findNextEpisode();
-    if (nextEp) {
-        isAutoAdvancing = true;
-        setTimeout(() => loadEpisode(nextEp.id, null), 500);
-    } else {
-        endMessage.classList.remove('hidden');
-        clearProgress();
+    if (video) video.pause();
+    if (overlay) {
+        overlay.querySelectorAll('.area').forEach(el => el.style.display = 'flex');
     }
-});
 
-video.addEventListener('timeupdate', () => {
-    const cur = video.currentTime;
-    const dur = video.duration || 0;
+    startChoiceAmbient();
+
+    const timeout = sceneChoiceState.timeoutDuration;
+    sceneChoiceState.timeoutAt = Date.now() + timeout * 1000;
+
+    if (choiceCountdownEl) choiceCountdownEl.classList.remove('hidden');
+    if (countdownNumberEl) countdownNumberEl.textContent = timeout;
+    const circumference = 2 * Math.PI * 19;
+    if (countdownRingEl) {
+        countdownRingEl.style.strokeDasharray = circumference;
+        countdownRingEl.style.strokeDashoffset = 0;
+    }
+
+    sceneChoiceState.countdownId = setInterval(() => {
+        const remaining = Math.max(0, (sceneChoiceState.timeoutAt - Date.now()) / 1000);
+        if (countdownNumberEl) countdownNumberEl.textContent = Math.ceil(remaining);
+        const ratio = remaining / timeout;
+        if (countdownRingEl) {
+            countdownRingEl.style.strokeDashoffset = circumference * (1 - ratio);
+        }
+    }, 100);
+
+    sceneChoiceState.timeoutId = setTimeout(() => {
+        if (!sceneChoiceState.resolved) handleNoChoice();
+    }, timeout * 1000);
+}
+
+// ============================================================
+//  ОБРАБОТКА ВЫБОРА
+// ============================================================
+async function handleChoice(choice) {
+    sceneChoiceState.resolved = true;
+    if (sceneChoiceState.timeoutId) {
+        clearTimeout(sceneChoiceState.timeoutId);
+        sceneChoiceState.timeoutId = null;
+    }
+    if (sceneChoiceState.countdownId) {
+        clearInterval(sceneChoiceState.countdownId);
+        sceneChoiceState.countdownId = null;
+    }
+    choiceCountdownEl.classList.add('hidden');
+    if (overlay) {
+        overlay.querySelectorAll('.area').forEach(el => el.style.display = 'none');
+    }
+    stopChoiceAmbient();
+
+    const fallbackNext = choice.next || (currentScene && currentScene.next) || null;
+
+    if (choice.after_choice && choice.after_choice.video) {
+        await playInsert(choice.after_choice.video);
+        await continueAfterInsert(choice.after_choice, fallbackNext);
+    } else if (choice.next) {
+        await loadScene(choice.next);
+    } else if (fallbackNext) {
+        await loadScene(fallbackNext);
+    }
+}
+
+async function handleNoChoice() {
+    if (sceneChoiceState.resolved) return;
+    sceneChoiceState.resolved = true;
+    if (sceneChoiceState.timeoutId) {
+        clearTimeout(sceneChoiceState.timeoutId);
+        sceneChoiceState.timeoutId = null;
+    }
+    if (sceneChoiceState.countdownId) {
+        clearInterval(sceneChoiceState.countdownId);
+        sceneChoiceState.countdownId = null;
+    }
+    choiceCountdownEl.classList.add('hidden');
+    if (overlay) {
+        overlay.querySelectorAll('.area').forEach(el => el.style.display = 'none');
+    }
+    stopChoiceAmbient();
+
+    const nc = (currentScene && currentScene.no_choice) || {};
+    const fallbackNext = nc.next || (currentScene && currentScene.next) || null;
+
+    if (nc.after_choice && nc.after_choice.video) {
+        await playInsert(nc.after_choice.video);
+        await continueAfterInsert(nc.after_choice, fallbackNext);
+    } else if (nc.next) {
+        await loadScene(nc.next);
+    } else if (fallbackNext) {
+        await loadScene(fallbackNext);
+    }
+}
+
+// ============================================================
+//  ПОСЛЕ ВСТАВКИ
+// ============================================================
+async function continueAfterInsert(afterChoice, fallbackNext) {
+    if (afterChoice.resume_at != null) {
+        const dur = (video && video.duration) || 0;
+        if (dur > 0 && afterChoice.resume_at >= dur - 0.5) {
+            if (video) video.currentTime = dur - 0.1;
+            setTimeout(() => onSceneEnded(), 150);
+            return;
+        }
+        if (video) {
+            video.currentTime = Math.min(afterChoice.resume_at, dur > 0 ? dur - 0.1 : afterChoice.resume_at);
+            safePlay(video);
+        }
+        showControls();
+        return;
+    }
+
+    if (fallbackNext) {
+        await loadScene(fallbackNext);
+        return;
+    }
+    onSceneEnded();
+}
+
+// ============================================================
+//  ОКОНЧАНИЕ СЦЕНЫ
+// ============================================================
+function onSceneEnded() {
+    if (isAutoAdvancing) return;
+    const scene = currentScene;
+    if (!scene) return;
+
+    hideSkipButton();
+
+    if (scene.next) {
+        isAutoAdvancing = true;
+        setTimeout(() => loadScene(scene.next), 300);
+        return;
+    }
+
+    const idx = currentEpisodeScenes.findIndex(s => s.id === currentSceneId);
+    if (idx >= 0 && idx < currentEpisodeScenes.length - 1) {
+        const nextScene = currentEpisodeScenes[idx + 1];
+        isAutoAdvancing = true;
+        setTimeout(() => loadScene(nextScene.id), 300);
+        return;
+    }
+
+    goToNextEpisode();
+}
+
+// ============================================================
+//  ВСТАВКА
+// ============================================================
+function playInsert(videoFile) {
+    return new Promise((resolve) => {
+        if (!insertPlayer) { resolve(); return; }
+        const src = resolveVideoUrl(videoFile);
+        insertPlayer.src = src;
+        insertPlayer.classList.add('active');
+        insertPlayer.currentTime = 0;
+
+        isInsertPlaying = true;
+        if (playPauseBtn) playPauseBtn.classList.add('playing');
+        if (currentTimeEl) currentTimeEl.textContent = '0:00';
+        if (durationEl) durationEl.textContent = '0:00';
+        if (timelineProgress) timelineProgress.style.width = '0%';
+        if (timelineThumb) timelineThumb.style.left = '0%';
+        if (timelineBuffered) timelineBuffered.style.width = '0%';
+
+        if (video) video.pause();
+
+        let resolved = false;
+        const finish = () => {
+            if (resolved) return;
+            resolved = true;
+            insertPlayer.removeEventListener('ended', finish);
+            insertPlayer.removeEventListener('error', onError);
+            insertPlayer.classList.remove('active');
+            insertPlayer.removeAttribute('src');
+            insertPlayer.load();
+
+            isInsertPlaying = false;
+            if (playPauseBtn) playPauseBtn.classList.remove('playing');
+            resolve();
+        };
+
+        const onError = () => {
+            console.warn('Вставка не загрузилась, пропускаем:', src);
+            finish();
+        };
+
+        insertPlayer.addEventListener('ended', finish);
+        insertPlayer.addEventListener('error', onError);
+
+        insertPlayer.play().catch(() => {
+            insertPlayer.muted = true;
+            insertPlayer.play().catch(() => onError());
+        });
+
+        setTimeout(() => {
+            if (!resolved && insertPlayer.readyState < 2) {
+                console.warn('Вставка не готова за 5 секунд, пропускаем');
+                finish();
+            }
+        }, 5000);
+    });
+}
+
+// ============================================================
+//  ОБНОВЛЕНИЕ UI АКТИВНОГО ВИДЕО
+// ============================================================
+function onActiveTimeUpdate() {
+    const v = getActiveVideo();
+    if (!v) return;
+    const cur = v.currentTime;
+    const dur = v.duration || 0;
 
     if (dur > 0) {
         const percent = (cur / dur) * 100;
-        timelineProgress.style.width = percent + '%';
-        timelineThumb.style.left = percent + '%';
+        if (timelineProgress) timelineProgress.style.width = percent + '%';
+        if (timelineThumb) timelineThumb.style.left = percent + '%';
     }
+    if (currentTimeEl) currentTimeEl.textContent = formatTime(cur);
 
-    currentTimeEl.textContent = formatTime(cur);
-
-    const areaDivs = overlay.querySelectorAll('.area');
-    areaDivs.forEach((div, index) => {
-        const tr = transitions[index];
-        if (!tr) return;
-        const area = typeof tr.area_data === 'string' ? JSON.parse(tr.area_data) : tr.area_data;
-        const start = area.time_start || 0;
-        const end = area.time_end || 9999;
-        div.style.display = (cur >= start && cur <= end) ? 'block' : 'none';
-    });
-});
-
-video.addEventListener('loadedmetadata', () => {
-    durationEl.textContent = formatTime(video.duration);
-});
-
-video.addEventListener('progress', () => {
-    if (video.buffered.length > 0 && video.duration) {
-        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
-        const percent = (bufferedEnd / video.duration) * 100;
-        timelineBuffered.style.width = percent + '%';
+    if (!isInsertPlaying) {
+        if (sceneChoiceState.pauseAt != null
+            && !sceneChoiceState.triggered
+            && !sceneChoiceState.resolved
+            && lastTime < sceneChoiceState.pauseAt
+            && cur >= sceneChoiceState.pauseAt) {
+            triggerChoicePause();
+        }
+        checkSkipButton(cur, dur);
+        lastTime = cur;
     }
-});
-
-function togglePlay() {
-    if (video.paused) video.play();
-    else video.pause();
 }
 
-video.addEventListener('play', () => {
-    playPauseBtn.classList.add('playing');
+function onActiveLoadedMetadata() {
+    const v = getActiveVideo();
+    if (v && durationEl) durationEl.textContent = formatTime(v.duration);
+}
+
+function onActiveProgress() {
+    const v = getActiveVideo();
+    if (!v) return;
+    if (v.buffered.length > 0 && v.duration && timelineBuffered) {
+        const bufferedEnd = v.buffered.end(v.buffered.length - 1);
+        timelineBuffered.style.width = ((bufferedEnd / v.duration) * 100) + '%';
+    }
+}
+
+function onActivePlay() {
+    if (playPauseBtn) playPauseBtn.classList.add('playing');
     showControls();
-});
-
-video.addEventListener('pause', () => {
-    playPauseBtn.classList.remove('playing');
+}
+function onActivePause() {
+    if (playPauseBtn) playPauseBtn.classList.remove('playing');
     showControls();
-});
+}
 
-playPauseBtn.addEventListener('click', togglePlay);
-video.addEventListener('click', togglePlay);
+function showBuffering() { if (bufferingSpinner) bufferingSpinner.classList.add('visible'); }
+function hideBuffering() { if (bufferingSpinner) bufferingSpinner.classList.remove('visible'); }
 
+function bindVideoEvents(v) {
+    if (!v) return;
+    v.addEventListener('timeupdate', onActiveTimeUpdate);
+    v.addEventListener('loadedmetadata', onActiveLoadedMetadata);
+    v.addEventListener('progress', onActiveProgress);
+    v.addEventListener('play', onActivePlay);
+    v.addEventListener('pause', onActivePause);
+    v.addEventListener('waiting', showBuffering);
+    v.addEventListener('stalled', showBuffering);
+    v.addEventListener('playing', hideBuffering);
+    v.addEventListener('canplay', hideBuffering);
+    v.addEventListener('seeked', hideBuffering);
+    v.addEventListener('error', hideBuffering);
+}
+
+bindVideoEvents(video);
+bindVideoEvents(insertPlayer);
+if (video) video.addEventListener('ended', onSceneEnded);
+
+// ============================================================
+//  PLAY / PAUSE
+// ============================================================
+function togglePlay() {
+    if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
+    const v = getActiveVideo();
+    if (!v) return;
+    if (v.paused) safePlay(v);
+    else v.pause();
+}
+if (playPauseBtn) playPauseBtn.addEventListener('click', togglePlay);
+if (video) video.addEventListener('click', togglePlay);
+if (insertPlayer) insertPlayer.addEventListener('click', togglePlay);
+
+// ============================================================
+//  ТАЙМЛАЙН
+// ============================================================
 function seekFromEvent(e) {
+    if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
+    if (!timeline) return;
     const rect = timeline.getBoundingClientRect();
     const clientX = e.clientX ?? (e.touches?.[0]?.clientX ?? 0);
     let x = clientX - rect.left;
     x = Math.max(0, Math.min(x, rect.width));
-    const percent = x / rect.width;
-    if (video.duration) video.currentTime = percent * video.duration;
+    const v = getActiveVideo();
+    if (v && v.duration) v.currentTime = (x / rect.width) * v.duration;
 }
-
-timeline.addEventListener('mousedown', (e) => { isDraggingTimeline = true; seekFromEvent(e); });
+if (timeline) {
+    timeline.addEventListener('mousedown', (e) => { isDraggingTimeline = true; seekFromEvent(e); });
+    timeline.addEventListener('touchstart', (e) => { isDraggingTimeline = true; seekFromEvent(e); }, { passive: true });
+}
 document.addEventListener('mousemove', (e) => { if (isDraggingTimeline) seekFromEvent(e); });
 document.addEventListener('mouseup', () => { isDraggingTimeline = false; });
-timeline.addEventListener('touchstart', (e) => { isDraggingTimeline = true; seekFromEvent(e); }, { passive: true });
 document.addEventListener('touchmove', (e) => { if (isDraggingTimeline) seekFromEvent(e); }, { passive: true });
 document.addEventListener('touchend', () => { isDraggingTimeline = false; });
 
-volumeSlider.addEventListener('input', (e) => {
-    video.volume = parseFloat(e.target.value);
-    video.muted = video.volume === 0;
-    updateVolumeIcon();
-});
-
-volumeBtn.addEventListener('click', () => {
-    video.muted = !video.muted;
-    updateVolumeIcon();
-});
-
-function updateVolumeIcon() {
-    volumeBtn.classList.remove('volume-high', 'volume-low', 'volume-mute');
-    if (video.muted || video.volume === 0) {
-        volumeBtn.classList.add('volume-mute');
-    } else if (video.volume < 0.5) {
-        volumeBtn.classList.add('volume-low');
-    } else {
-        volumeBtn.classList.add('volume-high');
-    }
+// ============================================================
+//  ГРОМКОСТЬ
+// ============================================================
+if (volumeSlider) {
+    volumeSlider.addEventListener('input', (e) => {
+        const v = getActiveVideo();
+        if (!v) return;
+        v.volume = parseFloat(e.target.value);
+        v.muted = v.volume === 0;
+        updateVolumeIcon();
+    });
 }
-
+if (volumeBtn) {
+    volumeBtn.addEventListener('click', () => {
+        const v = getActiveVideo();
+        if (!v) return;
+        v.muted = !v.muted;
+        updateVolumeIcon();
+    });
+}
+function updateVolumeIcon() {
+    if (!volumeBtn) return;
+    const v = getActiveVideo();
+    if (!v) return;
+    volumeBtn.classList.remove('volume-high', 'volume-low', 'volume-mute');
+    if (v.muted || v.volume === 0) volumeBtn.classList.add('volume-mute');
+    else if (v.volume < 0.5) volumeBtn.classList.add('volume-low');
+    else volumeBtn.classList.add('volume-high');
+}
 updateVolumeIcon();
 
-fullscreenBtn.addEventListener('click', () => {
-    if (video.webkitEnterFullscreen && !document.fullscreenEnabled) {
-        video.webkitEnterFullscreen();
-        return;
-    }
-    if (!document.fullscreenElement) {
-        player.requestFullscreen().catch(err => console.log(err));
-    } else {
-        document.exitFullscreen();
-    }
-});
+// ============================================================
+//  FULLSCREEN
+// ============================================================
+if (fullscreenBtn) {
+    fullscreenBtn.addEventListener('click', () => {
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+        if (isIOS) {
+            player.classList.toggle('ios-immersive');
+            if (player.classList.contains('ios-immersive')) {
+                setTimeout(() => window.scrollTo(0, 1), 50);
+            }
+            return;
+        }
+        if (video && video.webkitEnterFullscreen && !document.fullscreenEnabled) {
+            video.webkitEnterFullscreen();
+            return;
+        }
+        if (!document.fullscreenElement) {
+            if (player) player.requestFullscreen().catch(err => console.log(err));
+        } else {
+            document.exitFullscreen();
+        }
+    });
+}
 
+// ============================================================
+//  ПОКАЗ/СКРЫТИЕ ПАНЕЛИ
+// ============================================================
 function showControls() {
+    if (!controls || !player) return;
     controls.classList.add('visible');
     player.classList.add('show-controls');
     clearTimeout(hideControlsTimeout);
-    if (!video.paused) {
-        hideControlsTimeout = setTimeout(() => {
-            controls.classList.remove('visible');
-            player.classList.remove('show-controls');
-        }, 3000);
+    const v = getActiveVideo();
+    if (!v) return;
+    const keepVisible = sceneChoiceState.triggered && !sceneChoiceState.resolved;
+    if (!v.paused || keepVisible) {
+        if (!keepVisible) {
+            hideControlsTimeout = setTimeout(() => {
+                controls.classList.remove('visible');
+                player.classList.remove('show-controls');
+            }, 3000);
+        }
     }
 }
+if (player) {
+    player.addEventListener('mousemove', showControls);
+    player.addEventListener('mouseleave', () => {
+        const keepVisible = sceneChoiceState.triggered && !sceneChoiceState.resolved;
+        if (keepVisible) return;
+        const v = getActiveVideo();
+        if (v && !v.paused) {
+            if (controls) controls.classList.remove('visible');
+            if (player) player.classList.remove('show-controls');
+        }
+    });
+}
 
-player.addEventListener('mousemove', showControls);
-player.addEventListener('mouseleave', () => {
-    if (!video.paused) {
-        controls.classList.remove('visible');
-        player.classList.remove('show-controls');
-    }
-});
-
-episodeBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    episodesPopup.classList.toggle('hidden');
-    showControls();
-});
-
-popupClose.addEventListener('click', () => episodesPopup.classList.add('hidden'));
-
+// ============================================================
+//  ПОПАП СЕРИЙ
+// ============================================================
+if (episodeBtn) {
+    episodeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        episodesPopup.classList.toggle('hidden');
+        showControls();
+    });
+}
+if (popupClose) popupClose.addEventListener('click', () => episodesPopup.classList.add('hidden'));
 document.addEventListener('click', (e) => {
-    if (!episodesPopup.classList.contains('hidden') &&
+    if (episodesPopup && !episodesPopup.classList.contains('hidden') &&
         !episodesPopup.contains(e.target) &&
-        !episodeBtn.contains(e.target)) {
+        episodeBtn && !episodeBtn.contains(e.target)) {
         episodesPopup.classList.add('hidden');
     }
 });
 
-backHomeBtn.addEventListener('click', () => {
-    if (document.fullscreenElement) {
-        document.exitFullscreen().finally(() => { window.location.href = '/'; });
-    } else {
-        window.location.href = '/';
-    }
-});
-
-restartProgressBtn.addEventListener('click', () => {
-    if (!confirm('Начать сериал заново? Весь прогресс будет сброшен.')) return;
-    clearProgress();
-    if (episodesList.length > 0) {
-        loadEpisode(episodesList[0].id, null);
-    }
-});
-
-document.getElementById('restartBtn').addEventListener('click', () => {
-    clearProgress();
-    if (episodesList.length > 0) {
-        loadEpisode(episodesList[0].id, null);
-    }
-});
-
-document.getElementById('backBtn').addEventListener('click', () => {
-    window.location.href = '/';
-});
-
-document.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return;
-    switch (e.code) {
-        case 'Space': e.preventDefault(); togglePlay(); break;
-        case 'ArrowRight': video.currentTime += 5; showControls(); break;
-        case 'ArrowLeft': video.currentTime -= 5; showControls(); break;
-        case 'KeyF': fullscreenBtn.click(); break;
-        case 'Escape': episodesPopup.classList.add('hidden'); break;
-    }
-});
-
-(async () => {
-    await loadSeries();
-    const progress = loadProgress();
-    if (progress && progress.episodeId && progress.glavaId) {
-        const exists = episodesList.some(e => e.id == progress.episodeId);
-        if (exists) {
-            loadEpisode(progress.episodeId, progress.glavaId);
-            return;
+// ============================================================
+//  КНОПКИ УПРАВЛЕНИЯ
+// ============================================================
+if (backHomeBtn) {
+    backHomeBtn.addEventListener('click', () => {
+        if (document.fullscreenElement) {
+            document.exitFullscreen().finally(() => { window.location.href = '/'; });
+        } else {
+            window.location.href = '/';
         }
+    });
+}
+if (restartProgressBtn) {
+    restartProgressBtn.addEventListener('click', () => {
+        if (!confirm('Начать сериал заново? Весь прогресс будет сброшен.')) return;
+        clearProgress();
+        if (episodesList.length > 0) loadEpisode(episodesList[0].id, null);
+    });
+}
+const restartBtn = document.getElementById('restartBtn');
+if (restartBtn) {
+    restartBtn.addEventListener('click', () => {
+        clearProgress();
+        if (episodesList.length > 0) loadEpisode(episodesList[0].id, null);
+    });
+}
+const backBtn = document.getElementById('backBtn');
+if (backBtn) backBtn.addEventListener('click', () => { window.location.href = '/'; });
+
+// ============================================================
+//  КЛАВИАТУРА
+// ============================================================
+document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+    switch (e.code) {
+        case 'Space':
+            e.preventDefault();
+            if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
+            togglePlay();
+            break;
+        case 'ArrowRight':
+            if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
+            { const v = getActiveVideo(); if (v) v.currentTime += 5; }
+            showControls();
+            break;
+        case 'ArrowLeft':
+            if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
+            { const v = getActiveVideo(); if (v) v.currentTime -= 5; }
+            showControls();
+            break;
+        case 'KeyF': if (fullscreenBtn) fullscreenBtn.click(); break;
     }
-    if (episodeIdFromUrl) {
-        loadEpisode(episodeIdFromUrl, null);
-    } else if (episodesList.length > 0) {
-        loadEpisode(episodesList[0].id, null);
+});
+
+// ============================================================
+//  ЗАПУСК
+// ============================================================
+(async () => {
+    try {
+        await loadSeries();
+
+        const saved = loadProgress();
+        if (saved && saved.episodeId && saved.sceneId) {
+            const exists = episodesList.some(e => e.id == saved.episodeId);
+            if (exists) {
+                await loadEpisode(saved.episodeId, saved.sceneId);
+                return;
+            }
+        }
+
+        if (episodeIdFromUrl) {
+            await loadEpisode(episodeIdFromUrl, null);
+        } else if (episodesList.length > 0) {
+            await loadEpisode(episodesList[0].id, null);
+        }
+    } catch (err) {
+        console.error(err);
     }
 })();
