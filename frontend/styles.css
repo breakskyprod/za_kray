@@ -80,13 +80,13 @@ body {
 .hero {
     position: relative;
     width: 100%;
-    height: 90vh;
-    min-height: 600px;
+    height: 60vh;
+    min-height: 500px;
+    max-height: 650px;
     background: #000;
     overflow: hidden;
 }
 
-/* Контейнер под видео + виньетку */
 .hero-video-wrap {
     position: absolute;
     inset: 0;
@@ -94,32 +94,47 @@ body {
     background: #000;
 }
 
-/* Само видео */
 .hero-video {
     position: absolute;
     top: 50%;
-    transform: translateY(-50%);
     right: 0;
-    width: 70%;
+    transform: translateY(-50%);
     height: 100%;
+    width: auto;
+    max-width: 75%;
+    aspect-ratio: 16 / 9;
     object-fit: cover;
     object-position: center;
     z-index: 1;
     pointer-events: none;
 }
 
-/* Виньетка: слева затеняет видео под интерфейс */
 .hero-vignette {
     position: absolute;
     inset: 0;
     z-index: 2;
     pointer-events: none;
     background:
-        linear-gradient(to right, var(--bg-dark) 0%, var(--bg-dark) 20%, rgba(11, 11, 26, 0.7) 45%, rgba(11, 11, 26, 0) 75%),
-        linear-gradient(to top, var(--bg-dark) 0%, rgba(11, 11, 26, 0) 40%);
+        linear-gradient(
+            to right,
+            var(--bg-dark) 0%,
+            var(--bg-dark) 15%,
+            rgba(11, 11, 26, 0.96) 25%,
+            rgba(11, 11, 26, 0.82) 35%,
+            rgba(11, 11, 26, 0.55) 45%,
+            rgba(11, 11, 26, 0.28) 55%,
+            rgba(11, 11, 26, 0.08) 65%,
+            rgba(11, 11, 26, 0) 75%
+        ),
+        linear-gradient(
+            to top,
+            var(--bg-dark) 0%,
+            rgba(11, 11, 26, 0.85) 6%,
+            rgba(11, 11, 26, 0.4) 16%,
+            rgba(11, 11, 26, 0) 35%
+        );
 }
 
-/* Контент: слева */
 .hero-content {
     position: absolute;
     top: 50%;
@@ -147,7 +162,6 @@ body {
     line-height: 1.05;
 }
 
-/* Мета-информация: год • жанр • ценз — в одну строку */
 .hero-meta {
     display: flex;
     align-items: center;
@@ -167,7 +181,6 @@ body {
     font-weight: 600;
 }
 
-/* Кнопки */
 .hero-actions {
     display: flex;
     gap: 14px;
@@ -214,7 +227,6 @@ body {
 .btn-share .btn-icon { width: 18px; height: 18px; }
 .btn-share:hover { background: rgba(255, 255, 255, 0.14); border-color: var(--accent-1); }
 
-/* Кнопка звука */
 .sound-toggle {
     position: absolute;
     top: 24px;
@@ -247,7 +259,6 @@ body {
     width: 100%;
 }
 
-/* Серии */
 .episodes-section { margin-bottom: 56px; }
 .episodes-section h2 {
     font-size: 1.6rem;
@@ -307,7 +318,6 @@ body {
 }
 .loading-text { color: #888; padding: 20px 0; }
 
-/* Описание */
 .description-section {
     margin-bottom: 48px;
     max-width: 780px;
@@ -355,7 +365,6 @@ body {
 }
 .desc-toggle-btn:hover { color: var(--accent-2); }
 
-/* О фильме */
 .info-section { margin-bottom: 40px; }
 .info-section h2 {
     font-size: 1.6rem;
@@ -387,32 +396,53 @@ body {
 /* ===== МОБИЛЬНАЯ ВЕРСИЯ ===== */
 @media (max-width: 900px) {
     .hero {
+        position: relative;
+        width: 100%;
         height: auto;
         min-height: auto;
-        padding-bottom: 32px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        max-height: none;
+        padding: 0;
+        display: block;
+        overflow: hidden;
     }
+
     .hero-video-wrap {
         position: relative;
         width: 100%;
         height: auto;
+        inset: auto;
     }
+
     .hero-video {
         position: relative;
-        top: 0;
-        transform: none;
+        top: auto;
         right: auto;
+        transform: none;
         width: 100%;
-        aspect-ratio: 1 / 1;
         height: auto;
+        max-width: 100%;
+        aspect-ratio: 1 / 1;
         object-fit: cover;
         object-position: center;
     }
-    .hero-vignette { display: none; }
 
-    .sound-toggle { top: 16px; right: 16px; }
+    .hero-vignette {
+        display: block;
+        background: linear-gradient(
+            to top,
+            var(--bg-dark) 0%,
+            rgba(11, 11, 26, 0.9) 8%,
+            rgba(11, 11, 26, 0.6) 18%,
+            rgba(11, 11, 26, 0.25) 30%,
+            rgba(11, 11, 26, 0) 45%
+        );
+    }
+
+    .sound-toggle {
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+    }
 
     .hero-content {
         position: relative;
@@ -421,33 +451,70 @@ body {
         transform: none;
         max-width: 100%;
         width: 100%;
-        padding: 32px 20px 0;
+        padding: 0 20px 32px;
+        margin-top: -110px;
         text-align: center;
+        z-index: 5;
     }
+
     .hero-title-img {
-        margin: 0 auto 20px;
-        max-height: 140px;
+        margin: 0 auto 12px;
+        max-height: 100px;
     }
+
     .hero-title {
-        font-size: 2.4rem;
-        margin-bottom: 20px;
+        font-size: 2.2rem;
+        margin-bottom: 12px;
+        text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
     }
-    .hero-meta { justify-content: center; font-size: 0.95rem; margin-bottom: 24px; }
+
+    .hero-meta {
+        justify-content: center;
+        font-size: 0.95rem;
+        margin-bottom: 24px;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+    }
+
     .hero-actions {
         flex-direction: column;
         width: 100%;
         gap: 12px;
     }
-    .btn-watch, .btn-share { width: 100%; }
 
-    .main-content { margin-top: 32px; padding: 0 16px 40px; }
-    .info-grid { grid-template-columns: 1fr; gap: 8px; }
-    .info-label { min-width: 140px; font-size: 0.88rem; }
-    .info-value { font-size: 0.88rem; }
+    .btn-watch,
+    .btn-share {
+        width: 100%;
+    }
+
+    .main-content {
+        margin-top: 32px;
+        padding: 0 16px 40px;
+    }
+
+    .info-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .info-label {
+        min-width: 140px;
+        font-size: 0.88rem;
+    }
+
+    .info-value {
+        font-size: 0.88rem;
+    }
+
     .episodes-section h2,
     .description-section h2,
-    .info-section h2 { font-size: 1.3rem; }
-    .episode-card { flex: 0 0 220px; height: 130px; }
+    .info-section h2 {
+        font-size: 1.3rem;
+    }
+
+    .episode-card {
+        flex: 0 0 220px;
+        height: 130px;
+    }
 }
 
 @media (max-width: 700px) {
