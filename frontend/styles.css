@@ -83,7 +83,7 @@ body {
     height: 60vh;
     min-height: 500px;
     max-height: 650px;
-    background: #000;
+    background: var(--bg-dark);
     overflow: hidden;
 }
 
@@ -91,7 +91,20 @@ body {
     position: absolute;
     inset: 0;
     overflow: hidden;
-    background: #000;
+    background: var(--bg-dark);
+}
+
+/* Растворение краёв видео — псевдоэлемент поверх всего */
+.hero-video-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    /* Внутренняя тень: чёрный периметр, плавно исчезающий к центру */
+    box-shadow:
+        inset 0 0 120px 40px var(--bg-dark),
+        inset 0 0 200px 60px rgba(11, 11, 26, 0.6);
 }
 
 .hero-video {
@@ -101,7 +114,7 @@ body {
     transform: translateY(-50%);
     height: 100%;
     width: auto;
-    max-width: 75%;
+    max-width: 78%;
     aspect-ratio: 16 / 9;
     object-fit: cover;
     object-position: center;
@@ -109,6 +122,7 @@ body {
     pointer-events: none;
 }
 
+/* Виньетка слева + снизу (для наезда контента в hero) */
 .hero-vignette {
     position: absolute;
     inset: 0;
@@ -118,20 +132,20 @@ body {
         linear-gradient(
             to right,
             var(--bg-dark) 0%,
-            var(--bg-dark) 15%,
-            rgba(11, 11, 26, 0.96) 25%,
-            rgba(11, 11, 26, 0.82) 35%,
-            rgba(11, 11, 26, 0.55) 45%,
-            rgba(11, 11, 26, 0.28) 55%,
-            rgba(11, 11, 26, 0.08) 65%,
-            rgba(11, 11, 26, 0) 75%
+            var(--bg-dark) 12%,
+            rgba(11, 11, 26, 0.95) 22%,
+            rgba(11, 11, 26, 0.78) 34%,
+            rgba(11, 11, 26, 0.5) 46%,
+            rgba(11, 11, 26, 0.24) 58%,
+            rgba(11, 11, 26, 0.06) 72%,
+            rgba(11, 11, 26, 0) 85%
         ),
         linear-gradient(
             to top,
             var(--bg-dark) 0%,
-            rgba(11, 11, 26, 0.85) 6%,
-            rgba(11, 11, 26, 0.4) 16%,
-            rgba(11, 11, 26, 0) 35%
+            rgba(11, 11, 26, 0.85) 5%,
+            rgba(11, 11, 26, 0.4) 14%,
+            rgba(11, 11, 26, 0) 30%
         );
 }
 
@@ -403,7 +417,8 @@ body {
         max-height: none;
         padding: 0;
         display: block;
-        overflow: hidden;
+        overflow: visible;
+        background: var(--bg-dark);
     }
 
     .hero-video-wrap {
@@ -411,6 +426,12 @@ body {
         width: 100%;
         height: auto;
         inset: auto;
+        overflow: hidden;
+        /* Отключаем псевдоэлемент с тенью на мобильном — там другой подход */
+    }
+
+    .hero-video-wrap::after {
+        display: none;
     }
 
     .hero-video {
@@ -424,18 +445,14 @@ body {
         aspect-ratio: 1 / 1;
         object-fit: cover;
         object-position: center;
+        /* Мягкое растворение снизу — плавный переход в фон */
+        -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0,0,0,0.6) 82%, transparent 100%);
+        mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0,0,0,0.6) 82%, transparent 100%);
     }
 
+    /* Виньетка на мобильном не нужна — растворение делает сам mask */
     .hero-vignette {
-        display: block;
-        background: linear-gradient(
-            to top,
-            var(--bg-dark) 0%,
-            rgba(11, 11, 26, 0.9) 8%,
-            rgba(11, 11, 26, 0.6) 18%,
-            rgba(11, 11, 26, 0.25) 30%,
-            rgba(11, 11, 26, 0) 45%
-        );
+        display: none;
     }
 
     .sound-toggle {
@@ -444,6 +461,7 @@ body {
         z-index: 10;
     }
 
+    /* Контент — ПОД видео, не наезжает */
     .hero-content {
         position: relative;
         top: auto;
@@ -451,8 +469,8 @@ body {
         transform: none;
         max-width: 100%;
         width: 100%;
-        padding: 0 20px 32px;
-        margin-top: -110px;
+        padding: 8px 20px 32px;
+        margin-top: -40px;   /* небольшой наезд на градиент mask, но не на видео */
         text-align: center;
         z-index: 5;
     }
@@ -465,14 +483,12 @@ body {
     .hero-title {
         font-size: 2.2rem;
         margin-bottom: 12px;
-        text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
     }
 
     .hero-meta {
         justify-content: center;
         font-size: 0.95rem;
         margin-bottom: 24px;
-        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
     }
 
     .hero-actions {
@@ -487,7 +503,7 @@ body {
     }
 
     .main-content {
-        margin-top: 32px;
+        margin-top: 24px;
         padding: 0 16px 40px;
     }
 
