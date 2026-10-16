@@ -447,6 +447,10 @@ async function loadScene(sceneId) {
 
         lastTime = 0;
         saveProgress();
+                // Запускаем фоновую предзагрузку следующей сцены
+        if (shouldPreload()) {
+            setTimeout(() => preloadNextScene(), PRELOAD_DELAY);
+        }
 
         // Запускаем прелоад следующей сцены
         if (shouldPreload()) {
