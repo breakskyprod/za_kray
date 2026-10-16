@@ -5,14 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>За край — интерактивный сериал</title>
     <link rel="stylesheet" href="styles.css" />
-    <link rel="icon" type="image/png" href="/images/favicon.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0b0b1a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="За край">
-    <link rel="apple-touch-icon" href="/images/icon-192.png">
 </head>
 <body>
 
@@ -25,10 +23,9 @@
     </div>
 </div>
 
-<!-- Hero-блок -->
+<!-- Hero -->
 <header class="hero" id="hero">
     <div class="hero-video-wrap" id="heroVideoWrap">
-        <!-- Трейлер: на десктопе — справа, на мобильном — по центру -->
         <video
             id="trailerVideo"
             class="hero-video"
@@ -39,14 +36,9 @@
             preload="metadata"
             loop
         ></video>
-        <!-- Виньетка слева (десктоп) -->
-        <div class="hero-video-wrap" id="heroVideoWrap">
-            <video id="trailerVideo" class="hero-video" src="" muted playsinline webkit-playsinline preload="metadata" loop></video>
-            <div class="hero-vignette"></div>
-        </div>
+        <div class="hero-vignette"></div>
     </div>
 
-    <!-- Кнопка звука -->
     <button class="sound-toggle" id="soundToggle" title="Включить звук">
         <svg class="icon icon-sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="3,9 7,9 12,4 12,20 7,15 3,15" fill="currentColor" stroke="none"/>
@@ -61,7 +53,6 @@
     </button>
 
     <div class="hero-content">
-        <!-- SVG-логотип с фолбэком на текст -->
         <img
             class="hero-title-img"
             id="heroTitleImg"
@@ -103,7 +94,6 @@
 <!-- Основной контент -->
 <main class="main-content">
 
-    <!-- Серии -->
     <section class="episodes-section">
         <h2>Серии</h2>
         <div class="episodes-carousel" id="episodesCarousel">
@@ -111,7 +101,6 @@
         </div>
     </section>
 
-    <!-- Описание (свёрнутое с кнопкой «Ещё») -->
     <section class="description-section">
         <h2>Описание</h2>
         <div class="description-body" id="descBody">
@@ -120,20 +109,24 @@
         <button class="desc-toggle-btn" id="descToggleBtn">Ещё</button>
     </section>
 
-    <!-- Информация о сериале (О фильме) -->
     <section class="info-section" id="infoSection">
         <h2>О фильме</h2>
         <div class="info-grid">
             <div class="info-row"><span class="info-label">Год производства</span><span class="info-value" id="infoYear">—</span></div>
             <div class="info-row"><span class="info-label">Страна</span><span class="info-value" id="infoCountry">—</span></div>
             <div class="info-row"><span class="info-label">Жанр</span><span class="info-value" id="infoGenres">—</span></div>
+            <div class="info-row"><span class="info-label">Слоган</span><span class="info-value" id="infoTagline">—</span></div>
             <div class="info-row"><span class="info-label">Режиссёр</span><span class="info-value" id="infoDirector">—</span></div>
             <div class="info-row"><span class="info-label">Сценарий</span><span class="info-value" id="infoWriter">—</span></div>
             <div class="info-row"><span class="info-label">Продюсер</span><span class="info-value" id="infoProducer">—</span></div>
             <div class="info-row"><span class="info-label">Оператор</span><span class="info-value" id="infoOperator">—</span></div>
             <div class="info-row"><span class="info-label">Композитор</span><span class="info-value" id="infoComposer">—</span></div>
+            <div class="info-row"><span class="info-label">Художник</span><span class="info-value" id="infoArtist">—</span></div>
+            <div class="info-row"><span class="info-label">Монтаж</span><span class="info-value" id="infoEditor">—</span></div>
             <div class="info-row"><span class="info-label">Зрители</span><span class="info-value" id="infoViewers">—</span></div>
+            <div class="info-row"><span class="info-label">Сборы в России</span><span class="info-value" id="infoBoxOffice">—</span></div>
             <div class="info-row"><span class="info-label">Премьера в России</span><span class="info-value" id="infoPremiere">—</span></div>
+            <div class="info-row"><span class="info-label">Цифровой релиз</span><span class="info-value" id="infoDigital">—</span></div>
             <div class="info-row"><span class="info-label">Возраст</span><span class="info-value" id="infoAge">—</span></div>
             <div class="info-row"><span class="info-label">Время</span><span class="info-value" id="infoDuration">—</span></div>
         </div>
