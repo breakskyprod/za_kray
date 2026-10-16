@@ -902,3 +902,19 @@ body {
     .about-team-role { min-width: auto; }
     .about-cta-btn { padding: 16px 32px; font-size: 1rem; }
 }
+
+/* ===== Футер главной ===== */
+.site-footer {
+    text-align: center;
+    padding: 24px 20px 40px;
+}
+.site-footer-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    transition: 0.2s;
+}
+.site-footer-link:hover {
+    color: #fff;
+}
