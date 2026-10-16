@@ -133,13 +133,46 @@
             <div class="popup-list" id="popupList"></div>
         </div>
 
-        <div id="endMessage" class="end-message hidden">
-            <h2>Конец сезона</h2>
-            <div class="end-buttons">
-                <button id="restartBtn">Посмотреть заново</button>
-                <button id="backBtn">На главную</button>
-            </div>
+<div id="endMessage" class="end-message hidden">
+    <div class="end-message-inner">
+        <div class="end-label">Конец первого сезона</div>
+        <h1 class="end-title">За край</h1>
+        <p class="end-subtitle">
+            Спасибо, что прошли этот путь.<br>
+            Правильный выбор не отменяет последствий — но меняет то, что будет дальше.
+        </p>
+
+        <div class="end-divider"></div>
+
+        <div class="end-block">
+            <div class="end-block-title">Помощь рядом</div>
+            <div class="end-help-phone">8-800-2000-122</div>
+            <p class="end-help-text">
+                Единый телефон доверия для детей, подростков и их родителей.<br>
+                Анонимно, круглосуточно, бесплатно.
+            </p>
         </div>
+
+        <div class="end-buttons">
+            <button class="end-btn-primary" id="shareEndBtn">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="3"/>
+                    <circle cx="6" cy="12" r="3"/>
+                    <circle cx="18" cy="19" r="3"/>
+                    <line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/>
+                    <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/>
+                </svg>
+                Поделиться сериалом
+            </button>
+            <button class="end-btn-secondary" id="backBtn">На главную</button>
+            <button class="end-btn-secondary" id="restartBtn">Посмотреть заново</button>
+        </div>
+
+        <div class="end-footer">
+            © За край · 2027 · Все права защищены
+        </div>
+    </div>
+</div>
     </div>
     <script src="player_v2.js"></script>
 </body>
