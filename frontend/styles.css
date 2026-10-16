@@ -636,3 +636,36 @@ body {
     transition: 0.2s;
 }
 .share-popup-copy-inline:hover { transform: translateY(-1px); }
+
+/* ===== Плашка с логотипами продакшна ===== */
+.top-brandbar {
+    width: 100%;
+    height: 56px;
+    background: var(--bg-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+    position: relative;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.top-brandbar-logo {
+    max-height: 36px;
+    max-width: 90%;
+    height: auto;
+    width: auto;
+    display: block;
+    opacity: 0.85;
+}
+
+@media (max-width: 768px) {
+    .top-brandbar {
+        height: 44px;
+        padding: 0 16px;
+    }
+    .top-brandbar-logo {
+        max-height: 28px;
+    }
+}
