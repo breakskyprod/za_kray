@@ -669,3 +669,236 @@ body {
         max-height: 28px;
     }
 }
+
+
+/* ===== Плашка с логотипами продакшна ===== */
+.top-brandbar {
+    width: 100%;
+    height: 56px;
+    background: var(--bg-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 24px;
+    position: relative;
+    z-index: 100;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.top-brandbar-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+.top-brandbar-logo {
+    max-height: 36px;
+    max-width: 90%;
+    height: auto;
+    width: auto;
+    display: block;
+    opacity: 0.85;
+}
+@media (max-width: 768px) {
+    .top-brandbar { height: 44px; padding: 0 16px; }
+    .top-brandbar-logo { max-height: 28px; }
+}
+
+/* ===== Страница «О проекте» ===== */
+.about-page {
+    background: var(--bg-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.about-nav {
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 24px 24px 0;
+}
+.about-nav-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: 0.2s;
+}
+.about-nav-back:hover {
+    color: #fff;
+}
+.about-nav-back svg { flex-shrink: 0; }
+
+.about-main {
+    max-width: 780px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    flex: 1;
+}
+
+.about-hero {
+    text-align: center;
+    margin-bottom: 64px;
+}
+.about-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}
+.about-title {
+    font-size: 4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    margin-bottom: 20px;
+}
+.about-subtitle {
+    font-size: 1.15rem;
+    color: #c9cfe0;
+    line-height: 1.6;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.about-section {
+    margin-bottom: 56px;
+}
+.about-section h2 {
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: #eaeef7;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.about-section p {
+    color: #c9cfe0;
+    line-height: 1.75;
+    font-size: 1.05rem;
+    margin-bottom: 16px;
+}
+.about-section p:last-child {
+    margin-bottom: 0;
+}
+
+.about-section blockquote {
+    margin: 24px 0 0;
+    padding: 20px 24px;
+    background: rgba(74, 158, 255, 0.06);
+    border-left: 3px solid var(--accent-1);
+    border-radius: 0 12px 12px 0;
+    color: #eaeef7;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    font-style: italic;
+}
+
+.about-help {
+    background: linear-gradient(135deg, rgba(74, 158, 255, 0.08), rgba(164, 92, 255, 0.08));
+    border: 1px solid rgba(74, 158, 255, 0.2);
+    border-radius: 20px;
+    padding: 36px 32px;
+    text-align: center;
+    margin-bottom: 56px;
+}
+.about-help-title {
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #8089a0;
+    margin-bottom: 16px;
+}
+.about-help-phone {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 12px;
+}
+.about-help-text {
+    font-size: 0.95rem;
+    color: #c9cfe0;
+    line-height: 1.55;
+}
+
+.about-team {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.about-team-row {
+    display: flex;
+    gap: 24px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    line-height: 1.55;
+}
+.about-team-row:last-child {
+    border-bottom: none;
+}
+.about-team-role {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    min-width: 140px;
+    flex-shrink: 0;
+}
+.about-team-names {
+    color: #eaeef7;
+    font-size: 0.95rem;
+}
+
+.about-cta {
+    text-align: center;
+    margin-top: 64px;
+}
+.about-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 44px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: 60px;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 8px 24px var(--accent-2-soft);
+    transition: 0.25s;
+}
+.about-cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px var(--accent-2-soft);
+}
+
+.about-footer {
+    text-align: center;
+    padding: 24px 20px;
+    color: #4a5265;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+}
+
+@media (max-width: 700px) {
+    .about-main { padding: 24px 16px 60px; }
+    .about-title { font-size: 2.8rem; }
+    .about-subtitle { font-size: 1rem; }
+    .about-section h2 { font-size: 1.35rem; }
+    .about-section p { font-size: 1rem; }
+    .about-help { padding: 28px 20px; }
+    .about-help-phone { font-size: 1.7rem; }
+    .about-team-row {
+        flex-direction: column;
+        gap: 4px;
+    }
+    .about-team-role { min-width: auto; }
+    .about-cta-btn { padding: 16px 32px; font-size: 1rem; }
+}
