@@ -3,13 +3,37 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Плеер</title>
-    <link rel="stylesheet" href="player.css" />
+    <title>За край</title>
+    <link rel="stylesheet" href="player_v2.css" />
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0b0b1a">
 </head>
 <body>
     <div class="player" id="player">
         <video id="videoPlayer" preload="metadata" playsinline webkit-playsinline></video>
+        <video id="insertPlayer" class="insert-player" preload="auto" playsinline webkit-playsinline></video>
+        <audio id="choiceAmbient" preload="auto" loop></audio>
+
         <div id="overlay" class="overlay"></div>
+        <div class="buffering" id="bufferingSpinner"></div>
+
+        <div id="choiceCountdown" class="choice-countdown hidden">
+            <svg viewBox="0 0 44 44" class="countdown-ring">
+                <circle cx="22" cy="22" r="19" class="ring-bg"></circle>
+                <circle cx="22" cy="22" r="19" class="ring-fg" id="countdownRing"></circle>
+            </svg>
+            <span class="countdown-number" id="countdownNumber">10</span>
+        </div>
+
+        <!-- Кнопка «Пропустить» для финальных титров -->
+        <button class="skip-btn hidden" id="skipBtn" title="Следующая серия">
+            <span>Следующая серия</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 4 15 12 5 20 5 4" fill="currentColor"/>
+                <line x1="19" y1="5" x2="19" y2="19"/>
+            </svg>
+        </button>
 
         <div class="controls" id="controls">
             <div class="top-bar">
@@ -31,7 +55,7 @@
                 </div>
 
                 <div class="title-block">
-                    <span class="series-title" id="seriesTitleText"></span>
+                    <span class="series-title" id="seriesTitleText">За край</span>
                     <button class="episode-btn" id="episodeBtn">
                         <span>Серия <span id="epNumber">1</span></span>
                         <svg class="icon icon-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -110,13 +134,13 @@
         </div>
 
         <div id="endMessage" class="end-message hidden">
-            <h2>Конец</h2>
+            <h2>Конец сезона</h2>
             <div class="end-buttons">
                 <button id="restartBtn">Посмотреть заново</button>
-                <button id="backBtn">К сериям</button>
+                <button id="backBtn">На главную</button>
             </div>
         </div>
     </div>
-    <script src="player.js"></script>
+    <script src="player_v2.js"></script>
 </body>
 </html>
