@@ -3,55 +3,141 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Интерактивный сериал</title>
+    <title>За край — интерактивный сериал</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0b0b1a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="За край">
+    <link rel="apple-touch-icon" href="/images/icon-192.png">
 </head>
 <body>
-    <!-- Верхний блок – карусель с центральным контентом -->
-    <header class="hero" id="hero">
-        <div class="hero-slider" id="heroSlider"></div>
-        <div class="hero-overlay"></div>
 
-        <!-- Центральный контент на карусели -->
-        <div class="hero-content">
-            <h1 class="hero-title" id="seriesTitle">Загрузка...</h1>
-            <div class="hero-meta">
-                <span class="age-rating" id="ageRating">0+</span>
-                <div class="genres">
-                    <span class="genre-tag">Интерактивное кино</span>
-                    <span class="genre-tag">Драма</span>
-                </div>
-            </div>
-            <div class="hero-actions">
-                <button class="btn-watch" id="watchBtn">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <polygon points="6,4 20,12 6,20"/>
-                    </svg>
-                    <span>Смотреть</span>
-                </button>
-                <button class="btn-share" id="shareBtn">Поделиться</button>
-            </div>
+<!-- Прелоадер -->
+<div class="preloader" id="preloader">
+    <div class="preloader-inner">
+        <div class="preloader-logo">ЗА КРАЙ</div>
+        <div class="preloader-sub">интерактивный сериал</div>
+        <div class="preloader-bar"><div class="preloader-bar-fill"></div></div>
+    </div>
+</div>
+
+<!-- Hero-блок -->
+<header class="hero" id="hero">
+    <div class="hero-video-wrap" id="heroVideoWrap">
+        <!-- Трейлер: на десктопе — справа, на мобильном — по центру -->
+        <video
+            id="trailerVideo"
+            class="hero-video"
+            src=""
+            muted
+            playsinline
+            webkit-playsinline
+            preload="metadata"
+            loop
+        ></video>
+        <!-- Виньетка слева (десктоп) -->
+        <div class="hero-vignette"></div>
+    </div>
+
+    <!-- Кнопка звука -->
+    <button class="sound-toggle" id="soundToggle" title="Включить звук">
+        <svg class="icon icon-sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="3,9 7,9 12,4 12,20 7,15 3,15" fill="currentColor" stroke="none"/>
+            <line x1="16" y1="8" x2="22" y2="14"/>
+            <line x1="22" y1="8" x2="16" y2="14"/>
+        </svg>
+        <svg class="icon icon-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="3,9 7,9 12,4 12,20 7,15 3,15" fill="currentColor" stroke="none"/>
+            <path d="M15.5 8.5a5 5 0 0 1 0 7"/>
+            <path d="M18 6a8 8 0 0 1 0 12"/>
+        </svg>
+    </button>
+
+    <div class="hero-content">
+        <!-- SVG-логотип с фолбэком на текст -->
+        <img
+            class="hero-title-img"
+            id="heroTitleImg"
+            src="/images/logo.svg"
+            alt="За край"
+            onerror="this.style.display='none';document.getElementById('heroTitleText').style.display='block'"
+        />
+        <h1 class="hero-title" id="heroTitleText" style="display:none;">За край</h1>
+
+        <div class="hero-meta">
+            <span id="metaYear">2027</span>
+            <span class="dot">•</span>
+            <span id="metaGenres">драма, криминал</span>
+            <span class="dot">•</span>
+            <span class="age-rating" id="metaRating">18+</span>
         </div>
-    </header>
 
-    <!-- Основной контент ниже карусели -->
-    <main class="main-content">
-        <section class="episodes-section">
-            <h2>Серии</h2>
-            <div class="episodes-carousel" id="episodesCarousel">
-                <p class="loading-text">Загрузка серий...</p>
-            </div>
-        </section>
+        <div class="hero-actions">
+            <button class="btn-watch" id="watchBtn">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <polygon points="6,4 20,12 6,20"/>
+                </svg>
+                <span id="watchBtnText">Смотреть</span>
+            </button>
+            <button class="btn-share" id="shareBtn">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="18" cy="5" r="3"/>
+                    <circle cx="6" cy="12" r="3"/>
+                    <circle cx="18" cy="19" r="3"/>
+                    <line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/>
+                    <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/>
+                </svg>
+                <span>Поделиться</span>
+            </button>
+        </div>
+    </div>
+</header>
 
-        <section class="description-section" id="descSection">
-            <div class="description-header"><h2>Описание</h2></div>
-            <div class="description-body" id="descBody">
-                <p id="fullDescription">Загрузка описания...</p>
-            </div>
-            <button class="desc-toggle-btn" id="descToggleBtn">Развернуть</button>
-        </section>
-    </main>
+<!-- Основной контент -->
+<main class="main-content">
 
-    <script src="scripts.js"></script>
+    <!-- Серии -->
+    <section class="episodes-section">
+        <h2>Серии</h2>
+        <div class="episodes-carousel" id="episodesCarousel">
+            <p class="loading-text">Загрузка серий...</p>
+        </div>
+    </section>
+
+    <!-- Описание (свёрнутое с кнопкой «Ещё») -->
+    <section class="description-section">
+        <h2>Описание</h2>
+        <div class="description-body" id="descBody">
+            <p id="shortDescription"></p>
+        </div>
+        <button class="desc-toggle-btn" id="descToggleBtn">Ещё</button>
+    </section>
+
+    <!-- Информация о сериале (О фильме) -->
+    <section class="info-section" id="infoSection">
+        <h2>О фильме</h2>
+        <div class="info-grid">
+            <div class="info-row"><span class="info-label">Год производства</span><span class="info-value" id="infoYear">—</span></div>
+            <div class="info-row"><span class="info-label">Страна</span><span class="info-value" id="infoCountry">—</span></div>
+            <div class="info-row"><span class="info-label">Жанр</span><span class="info-value" id="infoGenres">—</span></div>
+            <div class="info-row"><span class="info-label">Режиссёр</span><span class="info-value" id="infoDirector">—</span></div>
+            <div class="info-row"><span class="info-label">Сценарий</span><span class="info-value" id="infoWriter">—</span></div>
+            <div class="info-row"><span class="info-label">Продюсер</span><span class="info-value" id="infoProducer">—</span></div>
+            <div class="info-row"><span class="info-label">Оператор</span><span class="info-value" id="infoOperator">—</span></div>
+            <div class="info-row"><span class="info-label">Композитор</span><span class="info-value" id="infoComposer">—</span></div>
+            <div class="info-row"><span class="info-label">Зрители</span><span class="info-value" id="infoViewers">—</span></div>
+            <div class="info-row"><span class="info-label">Премьера в России</span><span class="info-value" id="infoPremiere">—</span></div>
+            <div class="info-row"><span class="info-label">Возраст</span><span class="info-value" id="infoAge">—</span></div>
+            <div class="info-row"><span class="info-label">Время</span><span class="info-value" id="infoDuration">—</span></div>
+        </div>
+    </section>
+
+</main>
+
+<script src="scripts.js"></script>
 </body>
 </html>
