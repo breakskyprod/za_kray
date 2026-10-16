@@ -131,6 +131,46 @@ const sceneChoiceState = {
 const STORAGE_KEY = 'zaykrai_progress';
 
 // ============================================================
+//  ПРЕДЗАГРУЗКА СЛЕДУЮЩЕЙ СЦЕНЫ
+// ============================================================
+const PRELOAD_DELAY = 5000;       // через сколько мс после старта сцены запускать прелоад
+const preloadedUrls = new Set();  // что уже предзагружено
+
+function shouldPreload() {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return true;
+    const et = conn.effectiveType;
+    // Не грузим на медленных сетях
+    if (et === 'slow-2g' || et === '2g' || et === '3g') return false;
+    return true;
+}
+
+function preloadNextScene() {
+    const scene = currentScene;
+    if (!scene) return;
+
+    // Определяем ID следующей сцены: явный next или первый выбор по умолчанию
+    let nextSceneId = scene.next || null;
+    if (!nextSceneId && scene.choices && scene.choices.length) {
+        const first = scene.choices[0];
+        nextSceneId = first.next || null;
+    }
+    if (!nextSceneId) return;
+
+    fetch(`/api/scene/${nextSceneId}`)
+        .then(r => r.json())
+        .then(nextScene => {
+            if (!nextScene.video) return;
+            const url = nextScene.video.startsWith('http') ? nextScene.video : `/uploads/${nextScene.video}`;
+            if (preloadedUrls.has(url)) return;
+            preloadedUrls.add(url);
+            console.log(`[preload] Фоновая загрузка: ${url}`);
+            fetch(url, { cache: 'force-cache' }).catch(() => {});
+        })
+        .catch(() => {});
+}
+
+// ============================================================
 //  СОХРАНЕНИЕ / ЗАГРУЗКА ПРОГРЕССА
 // ============================================================
 function saveProgress() {
