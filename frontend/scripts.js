@@ -93,35 +93,39 @@ function initTrailer(src) {
     const soundBtn = document.getElementById('soundToggle');
     if (!video || !src) return;
 
-    video.src = src;
-    video.muted = true; // стартуем без звука
+    // 🔑 muted и playsinline СНАЧАЛА
+    video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
+    video.setAttribute('muted', '');
+    video.setAttribute('playsinline', '');
     video.loop = true;
 
-    // Автоплей
+    video.src = src;
+
+    // Пытаемся запустить сразу и на canplay
     const tryPlay = () => {
         const p = video.play();
         if (p && p.catch) {
             p.catch(err => {
                 if (err.name !== 'AbortError') {
-                    console.warn('Автоплей трейлера заблокирован:', err);
+                    console.warn('Автоплей трейлера:', err);
                 }
             });
         }
     };
     tryPlay();
+    video.addEventListener('loadeddata', tryPlay, { once: true });
+    video.addEventListener('canplay', tryPlay, { once: true });
+    // Ещё раз на всякий случай
+    setTimeout(tryPlay, 300);
 
-    // Кнопка звука
     if (soundBtn) {
         soundBtn.classList.remove('unmuted');
         soundBtn.addEventListener('click', () => {
             video.muted = !video.muted;
-            if (video.muted) {
-                soundBtn.classList.remove('unmuted');
-                soundBtn.title = 'Включить звук';
-            } else {
-                soundBtn.classList.add('unmuted');
-                soundBtn.title = 'Выключить звук';
-            }
+            soundBtn.classList.toggle('unmuted', !video.muted);
+            soundBtn.title = video.muted ? 'Включить звук' : 'Выключить звук';
         });
     }
 }
