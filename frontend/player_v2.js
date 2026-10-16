@@ -133,7 +133,6 @@ const STORAGE_KEY = 'zaykrai_progress';
 // ============================================================
 //  ПРЕДЗАГРУЗКА СЛЕДУЮЩЕЙ СЦЕНЫ
 // ============================================================
-const preloadedUrls = new Set();  // что уже предзагружено
 
 function shouldPreload() {
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
