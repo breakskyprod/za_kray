@@ -1,121 +1,273 @@
 {
-  "id": 1,
   "title": "За край",
-  "description": "В центре повествования — четверо друзей-одноклассников. Каждый из них обладает своими уязвимостями и мечтами, что делает их максимально близкими целевой аудитории. За 4 серии герои проходят путь от обычной школьной жизни до столкновения с серьёзными вызовами — вербовкой в деструктивные группы, вовлечением в распространение наркотиков, кибермошенничеством и участием в незаконных акциях. Зритель принимает решения за каждого из героев в ключевые моменты, и от этих решений зависит, смогут ли друзья сохранить себя, свои отношения и свободу.",
-  "age_rating": "16+",
-  "genres": ["Интерактивное кино", "Драма"],
+  "year": 2027,
+  "age_rating": "18+",
+  "genres": ["драма", "криминал"],
+  "trailer": "https://your-cdn.example.com/trailer.mp4",
+  "description": "Четверо друзей-подростков из спального района в летний период ищут варианты заработать денег на личные цели, постепенно втягиваясь в криминал. Каждый выбирает не тот путь — потому что так проще, быстрее и интереснее. Зритель выбирает тяжесть последствий действий героев посредством интерактивных выборов, перебрасывающих его на разные сюжетные ветки серии.",
+  "info": {
+    "year": "2027",
+    "country": "Россия",
+    "genres": ["драма", "криминал", "интерактивное кино"],
+    "director": "Дмитрий Князев",
+    "writer": "Дмитрий Князев",
+    "producer": "Дмитрий Князев",
+    "operator": "Дмитрий Князев",
+    "composer": "statuscomfort, breaksky",
+    "premiere": "23 сентября 2027",
+    "age": "12+",
+    "duration": "4 серии по 20 минут"
+  },
   "episodes": [
     {
       "id": 1,
       "episode_number": 1,
-      "title": "1 серия",
+      "title": "Курьер",
       "cover": "ep1_cover.jpg",
-      "glavas": [
-        { "id": 1, "title": "Начало",        "video": "ep1_start.mp4",  "type": "start" },
-        { "id": 2, "title": "Ветка А",       "video": "ep1_a.mp4",      "type": "ordinary" },
-        { "id": 3, "title": "Ветка Б",       "video": "ep1_b.mp4",      "type": "ordinary" },
-        { "id": 4, "title": "Развилка",      "video": "ep1_c.mp4",      "type": "ordinary" },
-        { "id": 5, "title": "Развилка 2",    "video": "ep1_d.mp4",      "type": "ordinary" },
-        { "id": 6, "title": "Почти финал",   "video": "ep1_e.mp4",      "type": "ordinary" },
-        { "id": 7, "title": "Почти финал 2", "video": "ep1_f.mp4",      "type": "ordinary" },
-        { "id": 8, "title": "Финал серии",   "video": "ep1_final.mp4",  "type": "final" }
-      ],
-      "transitions": [
+      "scenes": [
         {
-          "from": 1, "to": 2,
-          "area": { "x": 20, "y": 40, "width": 20, "height": 15, "time_start": 5, "time_end": 15, "label": "Пойти налево" }
+          "id": "ep1_scene1",
+          "type": "ordinary",
+          "video": "ep1_s1.mp4",
+          "pause_at": 480,
+          "choice_timeout": 10,
+          "choices": [
+            {
+              "id": "A",
+              "label": "Это заказ по приложению, клиент попросил",
+              "area": { "x": 10, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep1_s1_A.mp4" }
+            },
+            {
+              "id": "B",
+              "label": "Это моё личное, торфяное удобрение везу",
+              "area": { "x": 55, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep1_s1_B.mp4" }
+            }
+          ],
+          "no_choice": {
+            "after_choice": { "video": "ep1_s1_NC.mp4" }
+          },
+          "next": "ep1_scene2"
         },
         {
-          "from": 1, "to": 3,
-          "area": { "x": 60, "y": 40, "width": 20, "height": 15, "time_start": 5, "time_end": 15, "label": "Пойти направо" }
+          "id": "ep1_scene2",
+          "type": "ordinary",
+          "video": "ep1_s2.mp4",
+          "pause_at": 480,
+          "choice_timeout": 10,
+          "choices": [
+            {
+              "id": "A",
+              "label": "Выбросить груз и пойти в полицию",
+              "area": { "x": 10, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep1_s2_A.mp4" }
+            },
+            {
+              "id": "B",
+              "label": "Отбиться и спасти товар",
+              "area": { "x": 55, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep1_s2_B.mp4" }
+            }
+          ],
+          "no_choice": {
+            "after_choice": { "video": "ep1_s2_NC.mp4" }
+          },
+          "next": "ep1_credits"
         },
         {
-          "from": 2, "to": 4,
-          "area": { "x": 30, "y": 50, "width": 25, "height": 20, "time_start": 3, "time_end": 12, "label": "Ответить" }
-        },
-        {
-          "from": 2, "to": 5,
-          "area": { "x": 60, "y": 50, "width": 25, "height": 20, "time_start": 3, "time_end": 12, "label": "Промолчать" }
-        },
-        {
-          "from": 3, "to": 4,
-          "area": { "x": 30, "y": 50, "width": 25, "height": 20, "time_start": 3, "time_end": 12, "label": "Ответить" }
-        },
-        {
-          "from": 3, "to": 5,
-          "area": { "x": 60, "y": 50, "width": 25, "height": 20, "time_start": 3, "time_end": 12, "label": "Промолчать" }
-        },
-        {
-          "from": 4, "to": 6,
-          "area": { "x": 25, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Довериться" }
-        },
-        {
-          "from": 4, "to": 7,
-          "area": { "x": 55, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Уйти" }
-        },
-        {
-          "from": 5, "to": 6,
-          "area": { "x": 25, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Довериться" }
-        },
-        {
-          "from": 5, "to": 7,
-          "area": { "x": 55, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Уйти" }
-        },
-        {
-          "from": 6, "to": 8,
-          "area": { "x": 40, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Финальный шаг" }
-        },
-        {
-          "from": 7, "to": 8,
-          "area": { "x": 40, "y": 45, "width": 25, "height": 20, "time_start": 4, "time_end": 14, "label": "Финальный шаг" }
+          "id": "ep1_credits",
+          "type": "final",
+          "video": "ep1_credits.mp4"
         }
       ]
     },
     {
       "id": 2,
       "episode_number": 2,
-      "title": "2 серия",
+      "title": "Пластик",
       "cover": "ep2_cover.jpg",
-      "glavas": [
-        { "id": 100, "title": "Начало",  "video": "ep2_start.mp4",  "type": "start" },
-        { "id": 101, "title": "Финал",   "video": "ep2_final.mp4",  "type": "final" }
-      ],
-      "transitions": [
+      "scenes": [
         {
-          "from": 100, "to": 101,
-          "area": { "x": 40, "y": 45, "width": 25, "height": 20, "time_start": 5, "time_end": 15, "label": "Продолжить" }
+          "id": "ep2_scene1",
+          "type": "ordinary",
+          "video": "ep2_s1.mp4",
+          "pause_at": 480,
+          "choice_timeout": 10,
+          "choices": [
+            {
+              "id": "A",
+              "label": "Отправить данные и CVC-код",
+              "area": { "x": 10, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep2_s1_A.mp4" }
+            },
+            {
+              "id": "B",
+              "label": "Отказаться передавать доступ",
+              "area": { "x": 55, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep2_s1_B.mp4" }
+            }
+          ],
+          "no_choice": {
+            "after_choice": { "video": "ep2_s1_NC.mp4" }
+          },
+          "next": "ep2_scene2"
+        },
+        {
+          "id": "ep2_scene2",
+          "type": "ordinary",
+          "video": "ep2_s2.mp4",
+          "pause_at": 480,
+          "choice_timeout": 10,
+          "choices": [
+            {
+              "id": "A",
+              "label": "Сбросить бабушку и перевести деньги Артёму",
+              "area": { "x": 10, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep2_s2_A.mp4" }
+            },
+            {
+              "id": "B",
+              "label": "Обойти схему и срочно вернуть деньги",
+              "area": { "x": 55, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep2_s2_B.mp4" }
+            }
+          ],
+          "no_choice": {
+            "after_choice": { "video": "ep2_s2_NC.mp4" }
+          },
+          "next": "ep2_credits"
+        },
+        {
+          "id": "ep2_credits",
+          "type": "final",
+          "video": "ep2_credits.mp4"
         }
       ]
     },
     {
       "id": 3,
       "episode_number": 3,
-      "title": "3 серия",
+      "title": "Стая",
       "cover": "ep3_cover.jpg",
-      "glavas": [
-        { "id": 200, "title": "Начало",  "video": "ep3_start.mp4",  "type": "start" },
-        { "id": 201, "title": "Финал",   "video": "ep3_final.mp4",  "type": "final" }
-      ],
-      "transitions": [
+      "scenes": [
         {
-          "from": 200, "to": 201,
-          "area": { "x": 40, "y": 45, "width": 25, "height": 20, "time_start": 5, "time_end": 15, "label": "Продолжить" }
+          "id": "ep3_scene1",
+          "type": "ordinary",
+          "video": "ep3_s1.mp4",
+          "pause_at": 480,
+          "choice_timeout": 10,
+          "choices": [
+            {
+              "id": "A",
+              "label": "Облить зелёнкой",
+              "area": { "x": 10, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep3_s1_A.mp4" }
+            },
+            {
+              "id": "B",
+              "label": "Отказаться унижать",
+              "area": { "x": 55, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep3_s1_B.mp4" }
+            }
+          ],
+          "no_choice": {
+            "after_choice": { "video": "ep3_s1_NC.mp4" }
+          },
+          "next": "ep3_scene2"
+        },
+        {
+          "id": "ep3_scene2",
+          "type": "ordinary",
+          "video": "ep3_s2.mp4",
+          "pause_at": 480,
+          "choice_timeout": 10,
+          "choices": [
+            {
+              "id": "A",
+              "label": "Бросить кастет в лужу и встать на защиту",
+              "area": { "x": 10, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep3_s2_A.mp4" }
+            },
+            {
+              "id": "B",
+              "label": "Надеть кастет и ударить",
+              "area": { "x": 55, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep3_s2_B.mp4" }
+            }
+          ],
+          "no_choice": {
+            "after_choice": { "video": "ep3_s2_NC.mp4" }
+          },
+          "next": "ep3_credits"
+        },
+        {
+          "id": "ep3_credits",
+          "type": "final",
+          "video": "ep3_credits.mp4"
         }
       ]
     },
     {
       "id": 4,
       "episode_number": 4,
-      "title": "4 серия. Финал",
+      "title": "Сеть",
       "cover": "ep4_cover.jpg",
-      "glavas": [
-        { "id": 300, "title": "Начало",  "video": "ep4_start.mp4",  "type": "start" },
-        { "id": 301, "title": "Финал",   "video": "ep4_final.mp4",  "type": "final" }
-      ],
-      "transitions": [
+      "scenes": [
         {
-          "from": 300, "to": 301,
-          "area": { "x": 40, "y": 45, "width": 25, "height": 20, "time_start": 5, "time_end": 15, "label": "Финал" }
+          "id": "ep4_scene1",
+          "type": "ordinary",
+          "video": "ep4_s1.mp4",
+          "pause_at": 480,
+          "choice_timeout": 10,
+          "choices": [
+            {
+              "id": "A",
+              "label": "Осмотреть камеры и ответить куратору",
+              "area": { "x": 10, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep4_s1_A.mp4" }
+            },
+            {
+              "id": "B",
+              "label": "Насторожиться и спросить: «Зачем вам охрана и камеры?»",
+              "area": { "x": 55, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep4_s1_B.mp4" }
+            }
+          ],
+          "no_choice": {
+            "after_choice": { "video": "ep4_s1_NC.mp4" }
+          },
+          "next": "ep4_scene2"
+        },
+        {
+          "id": "ep4_scene2",
+          "type": "ordinary",
+          "video": "ep4_s2.mp4",
+          "pause_at": 480,
+          "choice_timeout": 10,
+          "choices": [
+            {
+              "id": "A",
+              "label": "Пойти к друзьям и в полицию с повинной",
+              "area": { "x": 10, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep4_s2_A.mp4" }
+            },
+            {
+              "id": "B",
+              "label": "Взять бутылку и пойти к путям",
+              "area": { "x": 55, "y": 55, "width": 35, "height": 22 },
+              "after_choice": { "video": "ep4_s2_B.mp4" }
+            }
+          ],
+          "no_choice": {
+            "after_choice": { "video": "ep4_s2_NC.mp4" }
+          },
+          "next": "ep4_credits"
+        },
+        {
+          "id": "ep4_credits",
+          "type": "final",
+          "video": "ep4_credits.mp4"
         }
       ]
     }
