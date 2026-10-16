@@ -106,8 +106,9 @@ body {
 .hero-video {
     position: absolute;
     top: 0;
-    left: 0;
-    width: 100%;
+    right: 0;
+    left: auto;
+    width: 82%;
     height: 100%;
     object-fit: cover;
     object-position: center;
@@ -131,24 +132,23 @@ body {
         linear-gradient(
             to right,
             #0b0b1a 0%,
-            #0b0b1a 20%,
-            rgba(11, 11, 26, 0.98) 42%,
-            rgba(11, 11, 26, 0.9) 52%,
-            rgba(11, 11, 26, 0.72) 62%,
-            rgba(11, 11, 26, 0.48) 72%,
-            rgba(11, 11, 26, 0.24) 82%,
-            rgba(11, 11, 26, 0.08) 90%,
-            rgba(11, 11, 26, 0) 98%
+            #0b0b1a 14%,
+            rgba(11, 11, 26, 0.92) 22%,
+            rgba(11, 11, 26, 0.7) 30%,
+            rgba(11, 11, 26, 0.42) 38%,
+            rgba(11, 11, 26, 0.18) 46%,
+            rgba(11, 11, 26, 0.04) 54%,
+            rgba(11, 11, 26, 0) 60%
         ),
         linear-gradient(
             to top,
             #0b0b1a 0%,
-            #0b0b1a 6%,
-            rgba(11, 11, 26, 0.95) 12%,
-            rgba(11, 11, 26, 0.78) 20%,
-            rgba(11, 11, 26, 0.5) 30%,
-            rgba(11, 11, 26, 0.22) 42%,
-            rgba(11, 11, 26, 0) 55%
+            #0b0b1a 5%,
+            rgba(11, 11, 26, 0.9) 10%,
+            rgba(11, 11, 26, 0.6) 17%,
+            rgba(11, 11, 26, 0.3) 26%,
+            rgba(11, 11, 26, 0.1) 36%,
+            rgba(11, 11, 26, 0) 45%
         );
 }
 
