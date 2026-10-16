@@ -80,7 +80,7 @@ body {
 .hero {
     position: relative;
     width: 100%;
-    aspect-ratio: 21 / 9;
+    aspect-ratio: 16 / 9;
     max-height: 85vh;
     min-height: 480px;
     background: var(--bg-dark);
