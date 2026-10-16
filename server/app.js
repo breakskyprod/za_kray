@@ -13,9 +13,18 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Раздача статики
+// =============================================
+//  СТАТИКА С ЗАГОЛОВКАМИ КЭШИРОВАНИЯ
+// =============================================
+// Для фронтенда — обычная раздача
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Для видео и обложек — долгий кэш, чтобы прелоад работал
+app.use('/uploads', (req, res, next) => {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+}, express.static(path.join(__dirname, 'uploads')));
 
 // Multer (на будущее)
 const storage = multer.diskStorage({
@@ -28,14 +37,17 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // =============================================
-//  СЕРИАЛ — ЧТЕНИЕ ИЗ JSON
+//  СЕРИАЛ
 // =============================================
-const DATA_FILE = path.join(__dirname, 'data', 'series.json');
+const SERIES_FILE_NAME = process.env.SERIES_FILE || 'series_v2.json';
+const DATA_FILE = path.join(__dirname, 'data', SERIES_FILE_NAME);
 
 function loadSeries() {
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
     return JSON.parse(raw);
 }
+
+console.log(`📖 Сериал: ${SERIES_FILE_NAME}`);
 
 // =============================================
 //  СТАТИСТИКА ПРОСМОТРОВ
@@ -47,7 +59,6 @@ function loadViews() {
     try {
         const raw = fs.readFileSync(VIEWS_FILE, 'utf8');
         const data = JSON.parse(raw);
-        // Защита от старых форматов файла
         return {
             total: data.total || 0,
             viewers: data.viewers || {},
@@ -63,28 +74,35 @@ function saveViews(data) {
     fs.writeFileSync(VIEWS_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
-// Зафиксировать просмотр серии (старт)
+// =============================================
+//  ПРОГРЕСС ЗРИТЕЛЕЙ
+// =============================================
+const STATES_FILE = path.join(__dirname, 'data', 'states.json');
+
+function loadStates() {
+    try {
+        return JSON.parse(fs.readFileSync(STATES_FILE, 'utf8'));
+    } catch (e) { return {}; }
+}
+
+function saveStates(data) {
+    fs.writeFileSync(STATES_FILE, JSON.stringify(data, null, 2), 'utf8');
+}
+
+// =============================================
+//  API: СТАТИСТИКА
+// =============================================
 app.post('/api/stats/view', (req, res) => {
     const { viewerId, type } = req.body;
-
-    // Считаем только старты серий, не каждую главу
-    if (type !== 'start') {
-        return res.json({ success: true, skipped: true });
-    }
-
+    if (type !== 'start') return res.json({ success: true, skipped: true });
     try {
         const views = loadViews();
-
-        // Общий счётчик просмотров
         views.total = (views.total || 0) + 1;
-
-        // Уникальные зрители
         if (viewerId && typeof viewerId === 'string' && viewerId.length > 0) {
             if (!views.viewers[viewerId]) {
                 views.viewers[viewerId] = new Date().toISOString();
             }
         }
-
         saveViews(views);
         res.json({ success: true });
     } catch (err) {
@@ -93,26 +111,85 @@ app.post('/api/stats/view', (req, res) => {
     }
 });
 
-// Просмотр статистики (по ключу в query-параметре)
-// Пример: https://ваш-сайт.onrender.com/api/stats?key=series_stats_key
 app.get('/api/stats', (req, res) => {
     const key = req.query.key;
     if (key !== STATS_KEY) {
         return res.status(403).json({ error: 'Доступ запрещён. Укажите ?key=...' });
     }
     const views = loadViews();
-    const uniqueCount = Object.keys(views.viewers || {}).length;
     res.json({
         total: views.total,
-        unique: uniqueCount,
+        unique: Object.keys(views.viewers || {}).length,
         lastUpdated: views.lastUpdated
     });
 });
 
-// =============================================
-//  API ДЛЯ ЗРИТЕЛЬСКОЙ ЧАСТИ
-// =============================================
+// CSV-экспорт статистики
+app.get('/api/stats/csv', (req, res) => {
+    const key = req.query.key;
+    if (key !== STATS_KEY) {
+        return res.status(403).json({ error: 'Доступ запрещён. Укажите ?key=...' });
+    }
+    const views = loadViews();
+    const unique = Object.keys(views.viewers || {}).length;
 
+    let csv = '\uFEFF';
+    csv += 'metric,value\n';
+    csv += `total,${views.total}\n`;
+    csv += `unique,${unique}\n`;
+    csv += `last_updated,${views.lastUpdated || ''}\n`;
+    csv += '\n';
+    csv += 'viewer_id,first_seen\n';
+    Object.entries(views.viewers || {}).forEach(([id, ts]) => {
+        csv += `${id},${ts}\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="series_stats.csv"');
+    res.send(csv);
+});
+
+// =============================================
+//  API: ПРОГРЕСС ЗРИТЕЛЯ
+// =============================================
+app.post('/api/state/save', (req, res) => {
+    const { viewerId, state } = req.body;
+    if (!viewerId || typeof viewerId !== 'string') {
+        return res.status(400).json({ error: 'Не указан viewerId' });
+    }
+    if (!state || typeof state !== 'object') {
+        return res.status(400).json({ error: 'Не указан state' });
+    }
+    try {
+        const states = loadStates();
+        if (Object.keys(state).length === 0) {
+            delete states[viewerId];
+        } else {
+            states[viewerId] = { ...state, updatedAt: new Date().toISOString() };
+        }
+        saveStates(states);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка сохранения' });
+    }
+});
+
+app.get('/api/state/:viewerId', (req, res) => {
+    try {
+        const states = loadStates();
+        const state = states[req.params.viewerId];
+        if (!state) return res.status(404).json({ error: 'Не найдено' });
+        res.json(state);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Ошибка чтения' });
+    }
+});
+
+// =============================================
+//  API: СЕРИАЛ
+// =============================================
 app.get('/api/series', (req, res) => {
     try {
         const series = loadSeries();
@@ -132,23 +209,22 @@ app.get('/api/series', (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Ошибка чтения series.json: ' + err.message });
+        res.status(500).json({ error: 'Ошибка чтения сериала: ' + err.message });
     }
 });
 
 app.get('/api/episodes', (req, res) => {
     try {
         const series = loadSeries();
-        const episodes = series.episodes.map(ep => ({
+        res.json(series.episodes.map(ep => ({
             id: ep.id,
             episode_number: ep.episode_number,
             title: ep.title,
             cover: ep.cover || ''
-        }));
-        res.json(episodes);
+        })));
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Ошибка чтения series.json' });
+        res.status(500).json({ error: 'Ошибка чтения сериала' });
     }
 });
 
@@ -160,47 +236,57 @@ app.get('/api/episode/:id', (req, res) => {
         res.json(ep);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Ошибка чтения series.json' });
+        res.status(500).json({ error: 'Ошибка чтения сериала' });
     }
 });
 
-app.get('/api/glava/:id', (req, res) => {
+app.get('/api/scene/:id', (req, res) => {
     try {
         const series = loadSeries();
-        const glavaId = parseInt(req.params.id);
-
-        let foundGlava = null;
+        const sceneId = req.params.id;
+        let foundScene = null;
         let foundEpisode = null;
-
         for (const ep of series.episodes) {
-            const g = ep.glavas.find(g => g.id === glavaId);
-            if (g) {
-                foundGlava = g;
+            const s = (ep.scenes || []).find(s => s.id === sceneId);
+            if (s) {
+                foundScene = s;
                 foundEpisode = ep;
                 break;
             }
         }
-
-        if (!foundGlava) return res.status(404).json({ error: 'Глава не найдена' });
-
-        const transitions = foundEpisode.transitions
-            .filter(t => t.from === glavaId)
-            .map(t => ({
-                to_glava_id: t.to,
-                area_data: JSON.stringify(t.area)
-            }));
-
+        if (!foundScene) return res.status(404).json({ error: 'Сцена не найдена' });
         res.json({
-            id: foundGlava.id,
-            title: foundGlava.title,
-            video_url: foundGlava.video,
-            glava_type: foundGlava.type,
+            ...foundScene,
             episode_id: foundEpisode.id,
-            transitions
+            episode_number: foundEpisode.episode_number
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Ошибка чтения series.json' });
+        res.status(500).json({ error: 'Ошибка чтения сериала' });
+    }
+});
+
+// Заглушки для админки
+app.post('/api/admin/series', upload.single('cover'), (req, res) => res.json({ message: 'ok' }));
+app.post('/api/admin/episode', (req, res) => res.json({ message: 'ok' }));
+app.post('/api/admin/glava', upload.single('video'), (req, res) => res.json({ message: 'ok' }));
+app.post('/api/admin/transition', (req, res) => res.json({ message: 'ok' }));
+app.post('/api/admin/publish', (req, res) => res.json({ message: 'ok' }));
+
+// =============================================
+//  API: ПУБЛИЧНАЯ СТАТИСТИКА (для счётчика зрителей на главной)
+// =============================================
+app.get('/api/stats/public', (req, res) => {
+    try {
+        const views = loadViews();
+        const unique = Object.keys(views.viewers || {}).length;
+        // Отдаём только число уникальных зрителей и общее
+        res.json({
+            unique,
+            total: views.total || 0
+        });
+    } catch (err) {
+        res.json({ unique: 0, total: 0 });
     }
 });
 
@@ -211,5 +297,5 @@ app.listen(PORT, () => {
     console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
     console.log(`📁 Данные:      ${DATA_FILE}`);
     console.log(`📊 Статистика:  ${VIEWS_FILE}`);
-    console.log(`📁 Видео:       ${path.join(__dirname, 'uploads')}`);
+    console.log(`👥 Прогресс:    ${STATES_FILE}`);
 });
