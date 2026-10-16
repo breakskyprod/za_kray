@@ -202,9 +202,12 @@ app.get('/api/series', (req, res) => {
         res.json({
             id: series.id,
             title: series.title,
+            year: series.year || null,
             description: series.description,
             age_rating: series.age_rating,
             genres: series.genres || [],
+            trailer: series.trailer || '',
+            info: series.info || {},
             episodes
         });
     } catch (err) {
