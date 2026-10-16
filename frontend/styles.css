@@ -99,18 +99,17 @@ body {
     display: none;
 }
 
-/* Видео растянуто по горизонтали (fill), высота 100% */
 .hero-video {
     position: absolute;
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    width: 90%;
+    top: 0;
+    left: 0;
+    width: 100%;
     height: 100%;
-    object-fit: fill;
+    object-fit: cover;
     object-position: center;
     z-index: 1;
     pointer-events: none;
+}
 }
 
 /* Виньетка: только слева и снизу. Плотные у краёв, плавно к центру. */
