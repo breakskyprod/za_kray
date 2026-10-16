@@ -291,6 +291,54 @@ app.get('/api/stats/public', (req, res) => {
 });
 
 // =============================================
+//  ПРОКСИ ДЛЯ ТРЕЙЛЕРА ИЗ GITHUB RELEASES
+//  Принудительно ставит Content-Type: video/mp4,
+//  чтобы браузер воспроизводил, а не скачивал.
+// =============================================
+const { Readable } = require('stream');
+
+const GITHUB_TRAILER_URL = 'https://github.com/breakskyprod/za_kray/releases/download/videos/trailer.mp4';
+
+app.get('/trailer-proxy.mp4', async (req, res) => {
+    const headers = {};
+    if (req.headers.range) headers.Range = req.headers.range;
+
+    try {
+        const response = await fetch(GITHUB_TRAILER_URL, { headers, redirect: 'follow' });
+
+        if (!response.ok && response.status !== 206) {
+            console.warn(`[trailer-proxy] GitHub вернул ${response.status}`);
+            return res.status(404).end();
+        }
+
+        res.status(response.status);
+
+        // 🔑 ГЛАВНОЕ: принудительно ставим video/mp4
+        res.setHeader('Content-Type', 'video/mp4');
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Headers', 'Range');
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+
+        const contentLength = response.headers.get('content-length');
+        if (contentLength) res.setHeader('Content-Length', contentLength);
+
+        const contentRange = response.headers.get('content-range');
+        if (contentRange) res.setHeader('Content-Range', contentRange);
+
+        if (response.body) {
+            Readable.fromWeb(response.body).pipe(res);
+        } else {
+            res.end();
+        }
+    } catch (err) {
+        console.error('[trailer-proxy] Ошибка:', err.message);
+        res.status(500).end();
+    }
+});
+
+// =============================================
 //  ЗАПУСК
 // =============================================
 app.listen(PORT, () => {
