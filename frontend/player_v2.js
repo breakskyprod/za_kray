@@ -906,6 +906,29 @@ if (restartBtn) {
 const backBtn = document.getElementById('backBtn');
 if (backBtn) backBtn.addEventListener('click', () => { window.location.href = '/'; });
 
+// Кнопка «Поделиться сериалом» на экране конца
+const shareEndBtn = document.getElementById('shareEndBtn');
+if (shareEndBtn) {
+    shareEndBtn.addEventListener('click', async () => {
+        const url = window.location.origin + '/';
+        const title = (seriesData && seriesData.title) || 'За край';
+        const text = 'Посмотри интерактивный сериал «За край»';
+        const ua = navigator.userAgent || '';
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
+        if (isMobile && navigator.share) {
+            try { await navigator.share({ title, text, url }); return; } catch (e) {}
+        }
+        try {
+            await navigator.clipboard.writeText(url);
+            shareEndBtn.querySelector('span') || (shareEndBtn.textContent = 'Ссылка скопирована!');
+            setTimeout(() => { shareEndBtn.innerHTML = shareEndBtn.dataset.originalHtml; }, 1800);
+        } catch (e) {
+            prompt('Скопируйте ссылку:', url);
+        }
+    });
+    shareEndBtn.dataset.originalHtml = shareEndBtn.innerHTML;
+}
+
 // ============================================================
 //  КЛАВИАТУРА
 // ============================================================
