@@ -402,7 +402,198 @@ git push
 
 ---
 
-## 📞 Контакты
 
-По техническим вопросам — к разработчику.
-По контенту — к продюсеру.
+**🚀 Инструкция по развертыванию сериала «За край» на сайте**
+В этом документе описана пошаговая стратегия размещения интерактивного сериала с использованием VPS и S3 от Reg.ru и CDN от VK Cloud. Такая связка позволяет уложиться в минимальный бюджет и обеспечить стабильную работу видео.
+
+🏗 Архитектура
+Сервер (VPS) и Хранилище (S3): Reg.ru
+
+CDN (раздача видео): VK Cloud
+
+Домен: Любой регистратор (например, Reg.ru)
+
+Бэкенд: Node.js + Express (развертывается на VPS)
+
+Фронтенд: Статика (раздается с VPS)
+
+Этап 1. Закупка и подготовка ресурсов
+1.1. Заказ VPS на Reg.ru
+Перейдите в панель управления Reg.cloud.
+
+Создайте сервер со следующими параметрами:
+
+ОС: Ubuntu 24.04 LTS.
+
+Конфигурация: Минимальная (1 vCPU, 2 ГБ RAM, 10–20 ГБ SSD SATA). Не берите выделенные ядра, для нашего проекта это избыточно.
+
+Сеть: Обязательно добавьте 1 публичный IP-адрес.
+
+Облачный роутер: НЕ подключайте (это лишние 200 ₽/мес).
+
+Дождитесь создания и сохраните IP-адрес, логин и пароль (или настройте SSH-ключ).
+
+1.2. Создание S3-хранилища на Reg.ru
+В панели Reg.cloud перейдите в раздел S3-хранилище.
+
+Создайте бакет (например, za-kray-video).
+
+Важно: При создании выберите тип адресации Virtual-Hosted (это критично для работы CORS на iOS).
+
+Объем: 30 ГБ (стоимость ~79 ₽/мес, исходящий трафик бесплатный).
+
+1.3. Пополнение баланса VK Cloud
+Зарегистрируйтесь в VK Cloud.
+
+Пополните баланс сервиса CDN на 20 000 ₽ (этого хватит с огромным запасом на весь период показов).
+
+Этап 2. Настройка сервера (VPS)
+Подключитесь к серверу по SSH из терминала:
+ssh root@ВАШ_IP_АДРЕС
+
+Выполните команды по порядку:
+
+1. Обновление системы и установка утилит:
+
+bash
+apt update && apt upgrade -y
+apt install -y curl git build-essential ufw nginx
+2. Настройка файрвола (UFW):
+
+bash
+ufw allow OpenSSH
+ufw allow 'Nginx Full'
+ufw enable
+3. Установка Node.js и PM2 (менеджер процессов):
+
+bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source ~/.bashrc
+nvm install --lts
+npm install -g pm2
+Этап 3. Деплой проекта и настройка Nginx
+1. Клонируйте репозиторий:
+
+bash
+cd /root
+git clone https://github.com/breakskyprod/za_kray.git
+cd za_kray/server
+npm install
+2. Создайте файл .env в папке server:
+
+bash
+nano .env
+Вставьте туда (замените ключ на свой длинный и случайный):
+
+env
+SERIES_FILE=series_v2.json
+STATS_KEY=ваш_супер_секретный_ключ_для_статистики
+PORT=3000
+3. Запустите сервер через PM2:
+
+bash
+pm2 start app.js --name "za-kray"
+pm2 startup
+pm2 save
+4. Настройте Nginx как прокси:
+Создайте файл /etc/nginx/sites-available/za-kray:
+
+nginx
+server {
+    listen 80;
+    server_name za-kray.ru www.za-kray.ru;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+Активируйте его:
+
+bash
+ln -s /etc/nginx/sites-available/za-kray /etc/nginx/sites-enabled/
+nginx -t
+systemctl reload nginx
+Этап 4. Домен и SSL (HTTPS)
+1. Настройка DNS:
+В панели управления вашим доменом создайте:
+
+A-запись: za-kray.ru -> ВАШ_IP_АДРЕС_СЕРВЕРА
+
+CNAME-запись: cdn.za-kray.ru -> ДОМЕН_ВЫДАННЫЙ_В_VK_CLOUD (появится после настройки CDN на Этапе 5).
+
+2. Установка бесплатного SSL на сервер (Let's Encrypt):
+
+bash
+apt install certbot python3-certbot-nginx
+certbot --nginx -d za-kray.ru -d www.za-kray.ru
+Certbot автоматически настроит HTTPS и автопродление.
+
+Этап 5. Настройка S3 и CDN
+1. Настройка CORS в S3 (Reg.ru):
+В свойствах вашего S3-бакета найдите настройку CORS и вставьте:
+
+json
+[
+  {
+    "AllowedOrigins": ["*"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["Range"],
+    "ExposeHeaders": ["Content-Length", "Content-Range"],
+    "MaxAgeSeconds": 3600
+  }
+]
+Загрузите все 36 видеофайлов в этот бакет.
+
+2. Настройка CDN в VK Cloud:
+
+В панели VK Cloud создайте CDN-ресурс.
+
+Источник: Укажите домен вашего S3-бакета в Reg.ru (без http://).
+
+Тип оптимизации: Выберите «Большие файлы (больше 20 МБ)».
+
+Домен: Привяжите ваш поддомен cdn.za-kray.ru (через CNAME, настроенный на Этапе 4).
+
+SSL: Включите бесплатный сертификат Let's Encrypt прямо в панели VK Cloud.
+
+Этап 6. Финальная конфигурация и проверка
+1. Обновите ссылки в JSON:
+Откройте файл server/data/series_v2.json и замените все имена файлов на URL от CDN:
+
+json
+// Было:
+"video": "ep1_s1.mp4"
+// Стало:
+"video": "https://cdn.za-kray.ru/ep1_s1.mp4"
+Сделайте это для всех 36 файлов.
+
+2. Обновите трейлер:
+Загрузите трейлер в S3 или на VPS и поменяйте ссылку в server/app.js (там, где находится прокси трейлера), чтобы он не тянулся с GitHub.
+
+3. Перезапустите сервер:
+
+bash
+cd /root/za_kray
+git pull
+cd server
+pm2 restart za-kray
+4. Чек-лист проверки:
+
+□ Сайт открывается по HTTPS (https://za-kray.ru).
+□ Видео на главной (трейлер) загружается.
+□ В плеере видео воспроизводится (запросы идут на cdn.za-kray.ru).
+□ Интерактивные выборы появляются в нужный момент.
+□ Сайт корректно открывается на iPhone (нет ошибки CORS).
+□ Работает счетчик зрителей на главной.
+□ В консоли (F12) нет красных ошибок.
+💰 Резюме по бюджету
+Единоразово: 20 000 ₽ (баланс CDN) + ~1000 ₽ (VPS и S3 на первый месяц).
+
+Ежемесячно: ~780 ₽ (VPS + S3) + копейки за реально потребленный трафик CDN.
+
+Эта инструкция позволит развернуть проект с нуля, даже если вы вернетесь к ней через несколько месяцев.
