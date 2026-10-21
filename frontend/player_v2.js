@@ -168,7 +168,7 @@ function clearProgress() {
 }
 
 // ============================================================
-//  ПАРСЕР УСЛОВИЙ
+//  ПАРСЕР УСЛОВИЙ (ДЛЯ СЦЕНАРИЯ)
 // ============================================================
 function parseCondition(expr) {
     if (!expr || typeof expr !== 'string') return true;
@@ -283,7 +283,7 @@ function applyEffects(effects) {
 }
 
 // ============================================================
-//  DOM
+//  DOM ЭЛЕМЕНТЫ
 // ============================================================
 const video = document.getElementById('videoPlayer');
 const insertPlayer = document.getElementById('insertPlayer');
@@ -303,8 +303,6 @@ const playPauseBtn = document.getElementById('playPauseBtn');
 const volumeBtn = document.getElementById('volumeBtn');
 const volumeSlider = document.getElementById('volumeSlider');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
-const episodeBtn = document.getElementById('episodeBtn');
-const epNumberEl = document.getElementById('epNumber');
 const seriesTitleText = document.getElementById('seriesTitleText');
 const episodesPopup = document.getElementById('episodesPopup');
 const popupList = document.getElementById('popupList');
@@ -316,6 +314,7 @@ const countdownNumberEl = document.getElementById('countdownNumber');
 const countdownRingEl = document.getElementById('countdownRing');
 const bufferingSpinner = document.getElementById('bufferingSpinner');
 const skipBtn = document.getElementById('skipBtn');
+const episodesBtn = document.getElementById('episodesBtn'); // Кнопка в нижней панели
 
 const params = new URLSearchParams(window.location.search);
 const episodeIdFromUrl = params.get('episodeId');
@@ -348,17 +347,28 @@ async function loadSeries() {
     renderEpisodesList();
 }
 
+// ============================================================
+//  РЕНДЕР СПИСКА СЕРИЙ (ГОРИЗОНТАЛЬНЫЙ)
+// ============================================================
 function renderEpisodesList() {
+    if (!popupList) return;
     popupList.innerHTML = '';
     episodesList.forEach(ep => {
         const item = document.createElement('div');
         item.className = 'ep-item' + (ep.id == currentEpisodeId ? ' active' : '');
-        const cover = ep.cover && ep.cover.trim() !== '' ? `/uploads/${ep.cover}` : `/images/frame${ep.episode_number}.jpg`;
+        
+        // Обложка
+        const cover = ep.cover && ep.cover.trim() !== '' 
+            ? `/uploads/${ep.cover}` 
+            : `/images/frame${ep.episode_number}.jpg`;
+        
+        item.style.backgroundImage = `url('${cover}')`;
+        
+        // Только бейдж "Серия N", без названия
         item.innerHTML = `
-            <span class="ep-num">${ep.episode_number}</span>
-            <div class="ep-info"><span class="ep-title">${ep.title || 'Без названия'}</span></div>
-            <div class="ep-cover" style="background-image: url('${cover}'), linear-gradient(145deg, #1a1a3e, #0b0b1a);"></div>
+            <span class="ep-item-badge">Серия ${ep.episode_number}</span>
         `;
+
         item.addEventListener('click', () => {
             loadEpisode(ep.id, null);
             episodesPopup.classList.add('hidden');
@@ -369,8 +379,17 @@ function renderEpisodesList() {
 
 async function loadEpisode(epId, sceneIdToLoad = null) {
     currentEpisodeId = epId;
-    const ep = episodesList.find(e => e.id == epId);
-    if (ep && epNumberEl) epNumberEl.textContent = ep.episode_number;
+    
+    // Обновляем активный класс в списке
+    if (popupList) {
+        Array.from(popupList.children).forEach((el, index) => {
+            if (episodesList[index] && episodesList[index].id == epId) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
+        });
+    }
 
     try {
         const res = await fetch(`/api/episode/${epId}`);
@@ -390,7 +409,6 @@ async function loadEpisode(epId, sceneIdToLoad = null) {
             return;
         }
         await loadScene(targetScene.id);
-        renderEpisodesList();
 
         fetch('/api/stats/view', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -403,7 +421,7 @@ async function loadEpisode(epId, sceneIdToLoad = null) {
 }
 
 // ============================================================
-//  RESET / COMPUTE CHOICE STATE
+//  CHOICE STATE
 // ============================================================
 function resetChoiceState() {
     if (sceneChoiceState.timeoutId) clearTimeout(sceneChoiceState.timeoutId);
@@ -517,7 +535,7 @@ async function loadScene(sceneId) {
         sceneChoiceState.pauseAt = computeChoicePauseAt(scene);
         sceneChoiceState.timeoutDuration = typeof scene.choice_timeout === 'number' ? scene.choice_timeout : 10;
 
-        conditionalOverlaysEl.innerHTML = '';
+        if (conditionalOverlaysEl) conditionalOverlaysEl.innerHTML = '';
         lastTime = 0;
         saveProgress();
 
@@ -596,7 +614,7 @@ async function handleChoice(choice) {
     sceneChoiceState.resolved = true;
     if (sceneChoiceState.timeoutId) clearTimeout(sceneChoiceState.timeoutId);
     if (sceneChoiceState.countdownId) clearInterval(sceneChoiceState.countdownId);
-    choiceCountdownEl.classList.add('hidden');
+    if (choiceCountdownEl) choiceCountdownEl.classList.add('hidden');
     if (overlay) overlay.querySelectorAll('.area').forEach(el => el.style.display = 'none');
     stopChoiceAmbient();
 
@@ -617,7 +635,7 @@ async function handleNoChoice() {
     sceneChoiceState.resolved = true;
     if (sceneChoiceState.timeoutId) clearTimeout(sceneChoiceState.timeoutId);
     if (sceneChoiceState.countdownId) clearInterval(sceneChoiceState.countdownId);
-    choiceCountdownEl.classList.add('hidden');
+    if (choiceCountdownEl) choiceCountdownEl.classList.add('hidden');
     if (overlay) overlay.querySelectorAll('.area').forEach(el => el.style.display = 'none');
     stopChoiceAmbient();
 
@@ -904,18 +922,25 @@ if (player) {
     });
 }
 
-if (episodeBtn) {
-    episodeBtn.addEventListener('click', (e) => {
+// ============================================================
+//  ОБРАБОТЧИКИ КНОПКИ И ПОПАПА СЕРИЙ
+// ============================================================
+if (episodesBtn) {
+    episodesBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        episodesPopup.classList.toggle('hidden');
+        if (episodesPopup) episodesPopup.classList.toggle('hidden');
         showControls();
     });
 }
-if (popupClose) popupClose.addEventListener('click', () => episodesPopup.classList.add('hidden'));
+if (popupClose) {
+    popupClose.addEventListener('click', () => {
+        if (episodesPopup) episodesPopup.classList.add('hidden');
+    });
+}
 document.addEventListener('click', (e) => {
     if (episodesPopup && !episodesPopup.classList.contains('hidden') &&
         !episodesPopup.contains(e.target) &&
-        episodeBtn && !episodeBtn.contains(e.target)) {
+        episodesBtn && !episodesBtn.contains(e.target)) {
         episodesPopup.classList.add('hidden');
     }
 });
@@ -953,6 +978,9 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// ============================================================
+//  СТАРТ
+// ============================================================
 (async () => {
     try {
         await loadSeries();
