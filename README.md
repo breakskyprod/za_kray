@@ -62,7 +62,7 @@ interactive-series/
 | **Обложки серий** | `server/uploads/` |
 | **Логотип, иконки, brandbar** | `frontend/images/` | По пути `/images/имя_файла` |
 | **Аудио для выбора** | `server/uploads/` (или S3) | По пути `/uploads/choice_ambient.mp3` |
-| **Трейлер** | GitHub Releases → прокси `/trailer-proxy.mp4` | Ссылка в поле `trailer` |
+| **Трейлер** | `server/uploads/` |
 
 ---
 
