@@ -39,17 +39,6 @@ function safePlay(el) {
 }
 
 // ============================================================
-//  УТИЛИТА: путь к видео/картинке
-//  Если полный URL (http/https) — используем как есть,
-//  иначе — берём из локальной папки /uploads/
-// ============================================================
-function resolveVideoUrl(video) {
-    if (!video) return '';
-    if (/^https?:\/\//i.test(video)) return video;
-    return `/uploads/${video}`;
-}
-
-// ============================================================
 //  VIEWER ID
 // ============================================================
 function getViewerId() {
@@ -64,12 +53,243 @@ function getViewerId() {
 }
 
 // ============================================================
+//  STORY STATE
+// ============================================================
+const initialStoryState = {
+    group_contact: false, max_signal: false, max_action: false, max_evidence: false, max_adult: false,
+    anya_job: false, anya_money: false, anya_transfer: false, anya_understand: false, anya_adult: false,
+    timur_job: false, timur_paid: false, timur_repeat: false, timur_suspicion: false, timur_drug: 0, timur_adult: false,
+    lena_alex: false, lena_views: false, lena_validation: false, lena_extrem: false, lena_evidence: false, lena_adult: false
+};
+
+let storyState = { ...initialStoryState };
+let playedInserts = [];
+let watchedEpisodes = [];
+let currentEpisodeId = null;
+let currentSceneId = null;
+let currentScene = null;
+let currentEpisodeScenes = [];
+let episodesList = [];
+let seriesData = null;
+let isInsertPlaying = false;
+
+const sceneChoiceState = {
+    pauseAt: null, triggered: false, resolved: false,
+    timeoutId: null, countdownId: null, timeoutAt: 0, timeoutDuration: 10
+};
+
+const STORAGE_KEY = 'zaykrai_progress';
+
+// ============================================================
+//  ПРЕДЗАГРУЗКА СЛЕДУЮЩЕЙ СЦЕНЫ
+// ============================================================
+const preloadedUrls = new Set();
+
+function shouldPreload() {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!conn) return true;
+    const et = conn.effectiveType;
+    if (et === 'slow-2g' || et === '2g' || et === '3g') return false;
+    return true;
+}
+
+function preloadNextScene() {
+    const scene = currentScene;
+    if (!scene) return;
+
+    let nextSceneId = scene.next || null;
+    if (!nextSceneId && scene.choices && scene.choices.length) {
+        const firstChoice = scene.choices[0];
+        nextSceneId = firstChoice.next || null;
+    }
+    if (!nextSceneId) return;
+
+    fetch(`/api/scene/${nextSceneId}`)
+        .then(r => r.json())
+        .then(nextScene => {
+            if (!nextScene.video) return;
+            const url = `/uploads/${nextScene.video}`;
+            if (preloadedUrls.has(url)) return;
+            preloadedUrls.add(url);
+            console.log(`[preload] Фоновая загрузка: ${url}`);
+            fetch(url, { cache: 'force-cache' }).catch(() => {});
+        })
+        .catch(() => {});
+}
+
+// ============================================================
+//  СОХРАНЕНИЕ / ЗАГРУЗКА ПРОГРЕССА
+// ============================================================
+function saveProgress() {
+    const data = { episodeId: currentEpisodeId, sceneId: currentSceneId, storyState, playedInserts, watchedEpisodes, savedAt: Date.now() };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+    const viewerId = getViewerId();
+    if (viewerId) {
+        fetch('/api/state/save', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewerId, state: data })
+        }).catch(() => {});
+    }
+}
+
+function loadProgress() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+}
+
+async function loadStoryDataAsync() {
+    const local = loadProgress();
+    if (local && local.episodeId) return local;
+    const viewerId = getViewerId();
+    if (!viewerId) return null;
+    try {
+        const res = await fetch(`/api/state/${viewerId}`);
+        if (!res.ok) return null;
+        const remote = await res.json();
+        if (remote && remote.episodeId) {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(remote)); } catch (e) {}
+            return remote;
+        }
+    } catch (e) {}
+    return null;
+}
+
+function clearProgress() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+    const viewerId = getViewerId();
+    if (viewerId) {
+        fetch('/api/state/save', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewerId, state: {} })
+        }).catch(() => {});
+    }
+}
+
+// ============================================================
+//  ПАРСЕР УСЛОВИЙ
+// ============================================================
+function parseCondition(expr) {
+    if (!expr || typeof expr !== 'string') return true;
+    const tokens = tokenizeCondition(expr);
+    let pos = 0;
+    function peek() { return tokens[pos]; }
+    function next() { return tokens[pos++]; }
+
+    function parseOr() {
+        let left = parseAnd();
+        while (peek() && peek().type === 'op' && peek().value === '||') { next(); left = { type: 'or', left, right: parseAnd() }; }
+        return left;
+    }
+    function parseAnd() {
+        let left = parseComparison();
+        while (peek() && peek().type === 'op' && peek().value === '&&') { next(); left = { type: 'and', left, right: parseComparison() }; }
+        return left;
+    }
+    function parseComparison() {
+        let left = parseUnary();
+        if (peek() && peek().type === 'op' && (peek().value === '==' || peek().value === '!=')) {
+            const op = next().value; return { type: 'compare', op, left, right: parseUnary() };
+        }
+        return left;
+    }
+    function parseUnary() {
+        if (peek() && peek().type === 'op' && peek().value === '!') { next(); return { type: 'not', value: parseUnary() }; }
+        return parseAtom();
+    }
+    function parseAtom() {
+        const t = next();
+        if (!t) return { type: 'lit', value: false };
+        if (t.type === 'paren') return t.value;
+        if (t.type === 'literal') return { type: 'lit', value: t.value };
+        if (t.type === 'ident') return { type: 'ident', name: t.value };
+        return { type: 'lit', value: false };
+    }
+    function evaluate(node) {
+        switch (node.type) {
+            case 'lit': return node.value;
+            case 'ident': { const v = storyState[node.name]; return v === undefined ? false : v; }
+            case 'not': return !evaluate(node.value);
+            case 'and': return evaluate(node.left) && evaluate(node.right);
+            case 'or':  return evaluate(node.left) || evaluate(node.right);
+            case 'compare': {
+                const l = evaluate(node.left), r = evaluate(node.right);
+                if (node.op === '==') return l == r;
+                if (node.op === '!=') return l != r;
+                return false;
+            }
+        }
+        return false;
+    }
+    return !!evaluate(parseOr());
+}
+
+function tokenizeCondition(expr) {
+    const tokens = []; let i = 0;
+    while (i < expr.length) {
+        const c = expr[i];
+        if (/\s/.test(c)) { i++; continue; }
+        if (c === '&' && expr[i+1] === '&') { tokens.push({ type: 'op', value: '&&' }); i += 2; continue; }
+        if (c === '|' && expr[i+1] === '|') { tokens.push({ type: 'op', value: '||' }); i += 2; continue; }
+        if (c === '=' && expr[i+1] === '=') { tokens.push({ type: 'op', value: '==' }); i += 2; continue; }
+        if (c === '!' && expr[i+1] === '=') { tokens.push({ type: 'op', value: '!=' }); i += 2; continue; }
+        if (c === '!') { tokens.push({ type: 'op', value: '!' }); i++; continue; }
+        if (c === '(') {
+            let depth = 1, j = i + 1;
+            while (j < expr.length && depth > 0) { if (expr[j] === '(') depth++; else if (expr[j] === ')') depth--; j++; }
+            const inner = expr.slice(i + 1, j - 1);
+            tokens.push({ type: 'paren', value: buildTree(tokenizeCondition(inner)) }); i = j; continue;
+        }
+        if (c === '"' || c === "'") {
+            let j = i + 1; while (j < expr.length && expr[j] !== c) j++;
+            tokens.push({ type: 'literal', value: expr.slice(i + 1, j) }); i = j + 1; continue;
+        }
+        if (/\d/.test(c)) {
+            let j = i; while (j < expr.length && /[\d.]/.test(expr[j])) j++;
+            tokens.push({ type: 'literal', value: parseFloat(expr.slice(i, j)) }); i = j; continue;
+        }
+        if (/[a-zA-Z_]/.test(c)) {
+            let j = i; while (j < expr.length && /[a-zA-Z0-9_]/.test(expr[j])) j++;
+            const name = expr.slice(i, j);
+            if (name === 'true') tokens.push({ type: 'literal', value: true });
+            else if (name === 'false') tokens.push({ type: 'literal', value: false });
+            else tokens.push({ type: 'ident', value: name });
+            i = j; continue;
+        }
+        i++;
+    }
+    return tokens;
+}
+
+function buildTree(tokens) {
+    let pos = 0;
+    function peek() { return tokens[pos]; }
+    function next() { return tokens[pos++]; }
+    function parseOr() { let left = parseAnd(); while (peek() && peek().type === 'op' && peek().value === '||') { next(); left = { type: 'or', left, right: parseAnd() }; } return left; }
+    function parseAnd() { let left = parseComparison(); while (peek() && peek().type === 'op' && peek().value === '&&') { next(); left = { type: 'and', left, right: parseComparison() }; } return left; }
+    function parseComparison() { let left = parseUnary(); if (peek() && peek().type === 'op' && (peek().value === '==' || peek().value === '!=')) { const op = next().value; return { type: 'compare', op, left, right: parseUnary() }; } return left; }
+    function parseUnary() { if (peek() && peek().type === 'op' && peek().value === '!') { next(); return { type: 'not', value: parseUnary() }; } return parseAtom(); }
+    function parseAtom() { const t = next(); if (!t) return { type: 'lit', value: false }; if (t.type === 'paren') return t.value; if (t.type === 'literal') return { type: 'lit', value: t.value }; if (t.type === 'ident') return { type: 'ident', name: t.value }; return { type: 'lit', value: false }; }
+    return parseOr();
+}
+
+function applyEffects(effects) {
+    if (!effects || typeof effects !== 'object') return;
+    for (const key of Object.keys(effects)) {
+        if (!(key in storyState)) { console.warn('Неизвестный флаг:', key); continue; }
+        storyState[key] = effects[key];
+    }
+}
+
+// ============================================================
 //  DOM
 // ============================================================
 const video = document.getElementById('videoPlayer');
 const insertPlayer = document.getElementById('insertPlayer');
 const choiceAmbient = document.getElementById('choiceAmbient');
 const overlay = document.getElementById('overlay');
+const conditionalOverlaysEl = document.getElementById('conditionalOverlays');
 const controls = document.getElementById('controls');
 const player = document.getElementById('player');
 const endMessage = document.getElementById('endMessage');
@@ -99,251 +319,21 @@ const skipBtn = document.getElementById('skipBtn');
 
 const params = new URLSearchParams(window.location.search);
 const episodeIdFromUrl = params.get('episodeId');
+const debugMode = params.get('debug') === '1';
 
-// ============================================================
-//  СОСТОЯНИЕ
-// ============================================================
-let currentEpisodeId = null;
-let currentSceneId = null;
-let currentScene = null;
-let currentEpisodeScenes = [];
-let episodesList = [];
-let seriesData = null;
-let isInsertPlaying = false;
-let isAutoAdvancing = false;
-let lastTime = 0;
 let hideControlsTimeout = null;
 let isDraggingTimeline = false;
+let isAutoAdvancing = false;
+let lastTime = 0;
 let skipButtonVisible = false;
 
-const preloadedUrls = new Set();
+function getActiveVideo() { return isInsertPlaying ? insertPlayer : video; }
 
-const sceneChoiceState = {
-    pauseAt: null,
-    triggered: false,
-    resolved: false,
-    timeoutId: null,
-    countdownId: null,
-    timeoutAt: 0,
-    timeoutDuration: 10
-};
-
-const STORAGE_KEY = 'zaykrai_progress';
-
-// ============================================================
-//  ПРЕДЗАГРУЗКА СЛЕДУЮЩЕЙ СЦЕНЫ
-// ============================================================
-
-function shouldPreload() {
-    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (!conn) return true;
-    const et = conn.effectiveType;
-    // Не грузим на медленных сетях
-    if (et === 'slow-2g' || et === '2g' || et === '3g') return false;
-    return true;
-}
-
-function preloadNextScene() {
-    const scene = currentScene;
-    if (!scene) return;
-
-    // Определяем ID следующей сцены: явный next или первый выбор по умолчанию
-    let nextSceneId = scene.next || null;
-    if (!nextSceneId && scene.choices && scene.choices.length) {
-        const first = scene.choices[0];
-        nextSceneId = first.next || null;
-    }
-    if (!nextSceneId) return;
-
-    fetch(`/api/scene/${nextSceneId}`)
-        .then(r => r.json())
-        .then(nextScene => {
-            if (!nextScene.video) return;
-            const url = nextScene.video.startsWith('http') ? nextScene.video : `/uploads/${nextScene.video}`;
-            if (preloadedUrls.has(url)) return;
-            preloadedUrls.add(url);
-            console.log(`[preload] Фоновая загрузка: ${url}`);
-            fetch(url, { cache: 'force-cache' }).catch(() => {});
-        })
-        .catch(() => {});
-}
-
-// ============================================================
-//  СОХРАНЕНИЕ / ЗАГРУЗКА ПРОГРЕССА
-// ============================================================
-function saveProgress() {
-    const data = {
-        episodeId: currentEpisodeId,
-        sceneId: currentSceneId,
-        savedAt: Date.now()
-    };
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (e) {}
-}
-
-function loadProgress() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : null;
-    } catch (e) { return null; }
-}
-
-function clearProgress() {
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-}
-
-// ============================================================
-//  ФОРМАТ ВРЕМЕНИ
-// ============================================================
 function formatTime(seconds) {
     if (isNaN(seconds) || seconds < 0) return '0:00';
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
-}
-
-function getActiveVideo() {
-    return isInsertPlaying ? insertPlayer : video;
-}
-
-// ============================================================
-//  ПРЕДЗАГРУЗКА СЛЕДУЮЩЕЙ СЦЕНЫ
-// ============================================================
-function shouldPreload() {
-    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-    if (!conn) return true;
-    const et = conn.effectiveType;
-    if (et === 'slow-2g' || et === '2g' || et === '3g') return false;
-    return true;
-}
-
-function preloadNextScene() {
-    const scene = currentScene;
-    if (!scene) return;
-
-    // Определяем ID следующей сцены
-    let nextSceneId = scene.next || null;
-    if (!nextSceneId && scene.choices && scene.choices.length) {
-        // Если по какой-то причине у сцены с выбором нет next — берём из первого выбора
-        const firstChoice = scene.choices[0];
-        nextSceneId = firstChoice.next || null;
-    }
-    if (!nextSceneId) return;
-
-    fetch(`/api/scene/${nextSceneId}`)
-        .then(r => r.json())
-        .then(nextScene => {
-            if (!nextScene.video) return;
-            const url = resolveVideoUrl(nextScene.video);
-            if (preloadedUrls.has(url)) return;
-            preloadedUrls.add(url);
-            console.log(`[preload] Начинаю предзагрузку: ${url}`);
-            fetch(url, { cache: 'force-cache' }).catch(() => {});
-        })
-        .catch(() => {});
-}
-
-// ============================================================
-//  CHOICE STATE
-// ============================================================
-function resetChoiceState() {
-    if (sceneChoiceState.timeoutId) {
-        clearTimeout(sceneChoiceState.timeoutId);
-        sceneChoiceState.timeoutId = null;
-    }
-    if (sceneChoiceState.countdownId) {
-        clearInterval(sceneChoiceState.countdownId);
-        sceneChoiceState.countdownId = null;
-    }
-    sceneChoiceState.pauseAt = null;
-    sceneChoiceState.triggered = false;
-    sceneChoiceState.resolved = false;
-    sceneChoiceState.timeoutAt = 0;
-    sceneChoiceState.timeoutDuration = 10;
-    if (choiceCountdownEl) choiceCountdownEl.classList.add('hidden');
-    stopChoiceAmbient();
-}
-
-function computeChoicePauseAt(scene) {
-    if (!scene) return null;
-    if (typeof scene.pause_at === 'number') return scene.pause_at;
-    if (!scene.choices || !scene.choices.length) return null;
-    const starts = scene.choices
-        .map(c => c.area && c.area.time_start)
-        .filter(t => typeof t === 'number' && !isNaN(t));
-    if (!starts.length) return null;
-    return Math.min(...starts);
-}
-
-// ============================================================
-//  МУЗЫКА НА ВРЕМЯ ВЫБОРА
-// ============================================================
-function startChoiceAmbient() {
-    if (!choiceAmbient) return;
-    if (!choiceAmbient.src) {
-        choiceAmbient.src = '/uploads/choice_ambient.mp3';
-    }
-    choiceAmbient.volume = 0.5;
-    try { choiceAmbient.currentTime = 0; } catch (e) {}
-    safePlay(choiceAmbient);
-}
-
-function stopChoiceAmbient() {
-    if (!choiceAmbient) return;
-    try {
-        choiceAmbient.pause();
-        choiceAmbient.currentTime = 0;
-    } catch (e) {}
-}
-
-// ============================================================
-//  КНОПКА «СЛЕДУЮЩАЯ СЕРИЯ»
-// ============================================================
-function showSkipButton() {
-    if (!skipBtn || skipButtonVisible) return;
-    skipButtonVisible = true;
-    skipBtn.classList.remove('hidden');
-}
-
-function hideSkipButton() {
-    if (!skipBtn || !skipButtonVisible) return;
-    skipButtonVisible = false;
-    skipBtn.classList.add('hidden');
-}
-
-function checkSkipButton(cur, dur) {
-    if (!currentScene || currentScene.type !== 'final') {
-        hideSkipButton();
-        return;
-    }
-    if (!dur || dur <= 0) return;
-    const remaining = dur - cur;
-    if (remaining <= SKIP_BUTTON_DELAY && remaining > 0) {
-        showSkipButton();
-    } else if (remaining <= 0) {
-        hideSkipButton();
-    }
-}
-
-function goToNextEpisode() {
-    const idx = episodesList.findIndex(e => e.id == currentEpisodeId);
-    const nextEp = (idx >= 0 && idx < episodesList.length - 1) ? episodesList[idx + 1] : null;
-    if (nextEp) {
-        isAutoAdvancing = true;
-        loadEpisode(nextEp.id, null);
-    } else {
-        endMessage.classList.remove('hidden');
-        clearProgress();
-    }
-}
-
-if (skipBtn) {
-    skipBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        hideSkipButton();
-        goToNextEpisode();
-    });
 }
 
 // ============================================================
@@ -363,9 +353,7 @@ function renderEpisodesList() {
     episodesList.forEach(ep => {
         const item = document.createElement('div');
         item.className = 'ep-item' + (ep.id == currentEpisodeId ? ' active' : '');
-        const cover = ep.cover && ep.cover.trim() !== ''
-            ? resolveVideoUrl(ep.cover)
-            : `/images/frame${ep.episode_number}.jpg`;
+        const cover = ep.cover && ep.cover.trim() !== '' ? `/uploads/${ep.cover}` : `/images/frame${ep.episode_number}.jpg`;
         item.innerHTML = `
             <span class="ep-num">${ep.episode_number}</span>
             <div class="ep-info"><span class="ep-title">${ep.title || 'Без названия'}</span></div>
@@ -403,10 +391,96 @@ async function loadEpisode(epId, sceneIdToLoad = null) {
         }
         await loadScene(targetScene.id);
         renderEpisodesList();
+
+        fetch('/api/stats/view', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ viewerId: getViewerId(), type: 'start' })
+        }).catch(() => {});
     } catch (err) {
         console.error(err);
         alert('Ошибка загрузки серии');
     }
+}
+
+// ============================================================
+//  RESET / COMPUTE CHOICE STATE
+// ============================================================
+function resetChoiceState() {
+    if (sceneChoiceState.timeoutId) clearTimeout(sceneChoiceState.timeoutId);
+    if (sceneChoiceState.countdownId) clearInterval(sceneChoiceState.countdownId);
+    sceneChoiceState.pauseAt = null;
+    sceneChoiceState.triggered = false;
+    sceneChoiceState.resolved = false;
+    sceneChoiceState.timeoutAt = 0;
+    sceneChoiceState.timeoutDuration = 10;
+    if (choiceCountdownEl) choiceCountdownEl.classList.add('hidden');
+    stopChoiceAmbient();
+}
+
+function computeChoicePauseAt(scene) {
+    if (!scene) return null;
+    if (typeof scene.pause_at === 'number') return scene.pause_at;
+    if (!scene.choices || !scene.choices.length) return null;
+    const starts = scene.choices.map(c => c.area && c.area.time_start).filter(t => typeof t === 'number' && !isNaN(t));
+    if (!starts.length) return null;
+    return Math.min(...starts);
+}
+
+// ============================================================
+//  МУЗЫКА НА ВРЕМЯ ВЫБОРА
+// ============================================================
+function startChoiceAmbient() {
+    if (!choiceAmbient) return;
+    if (!choiceAmbient.src) choiceAmbient.src = '/uploads/choice_ambient.mp3';
+    choiceAmbient.volume = 0.5;
+    try { choiceAmbient.currentTime = 0; } catch (e) {}
+    safePlay(choiceAmbient);
+}
+
+function stopChoiceAmbient() {
+    if (!choiceAmbient) return;
+    try { choiceAmbient.pause(); choiceAmbient.currentTime = 0; } catch (e) {}
+}
+
+// ============================================================
+//  КНОПКА «СЛЕДУЮЩАЯ СЕРИЯ»
+// ============================================================
+function showSkipButton() {
+    if (!skipBtn || skipButtonVisible) return;
+    skipButtonVisible = true;
+    skipBtn.classList.remove('hidden');
+}
+
+function hideSkipButton() {
+    if (!skipBtn || !skipButtonVisible) return;
+    skipButtonVisible = false;
+    skipBtn.classList.add('hidden');
+}
+
+function checkSkipButton(cur, dur) {
+    if (!currentScene || currentScene.type !== 'final') {
+        hideSkipButton();
+        return;
+    }
+    if (!dur || dur <= 0) return;
+    const remaining = dur - cur;
+    if (remaining <= SKIP_BUTTON_DELAY && remaining > 0) showSkipButton();
+    else if (remaining <= 0) hideSkipButton();
+}
+
+function goToNextEpisode() {
+    const idx = episodesList.findIndex(e => e.id == currentEpisodeId);
+    const nextEp = (idx >= 0 && idx < episodesList.length - 1) ? episodesList[idx + 1] : null;
+    if (nextEp) { isAutoAdvancing = true; loadEpisode(nextEp.id, null); }
+    else { endMessage.classList.remove('hidden'); clearProgress(); }
+}
+
+if (skipBtn) {
+    skipBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hideSkipButton();
+        goToNextEpisode();
+    });
 }
 
 // ============================================================
@@ -425,8 +499,10 @@ async function loadScene(sceneId) {
         isAutoAdvancing = false;
         endMessage.classList.add('hidden');
 
+        if (scene.scene_effects) applyEffects(scene.scene_effects);
+
         if (scene.video && scene.video.trim() !== '') {
-            video.src = resolveVideoUrl(scene.video);
+            video.src = `/uploads/${scene.video}`;
             video.load();
             video.play().catch(() => {
                 controls.classList.add('visible');
@@ -439,18 +515,12 @@ async function loadScene(sceneId) {
 
         buildChoiceAreas(scene);
         sceneChoiceState.pauseAt = computeChoicePauseAt(scene);
-        sceneChoiceState.timeoutDuration = typeof scene.choice_timeout === 'number'
-            ? scene.choice_timeout
-            : 10;
+        sceneChoiceState.timeoutDuration = typeof scene.choice_timeout === 'number' ? scene.choice_timeout : 10;
 
+        conditionalOverlaysEl.innerHTML = '';
         lastTime = 0;
         saveProgress();
-                // Запускаем фоновую предзагрузку следующей сцены
-        if (shouldPreload()) {
-            setTimeout(() => preloadNextScene(), PRELOAD_DELAY);
-        }
 
-        // Запускаем прелоад следующей сцены
         if (shouldPreload()) {
             setTimeout(() => preloadNextScene(), PRELOAD_DELAY);
         }
@@ -490,17 +560,12 @@ function buildChoiceAreas(scene) {
     });
 }
 
-// ============================================================
-//  ТРИГГЕР ПАУЗЫ ДЛЯ ВЫБОРА
-// ============================================================
 function triggerChoicePause() {
     if (!currentScene || !currentScene.choices || sceneChoiceState.resolved) return;
     sceneChoiceState.triggered = true;
 
     if (video) video.pause();
-    if (overlay) {
-        overlay.querySelectorAll('.area').forEach(el => el.style.display = 'flex');
-    }
+    if (overlay) overlay.querySelectorAll('.area').forEach(el => el.style.display = 'flex');
 
     startChoiceAmbient();
 
@@ -519,9 +584,7 @@ function triggerChoicePause() {
         const remaining = Math.max(0, (sceneChoiceState.timeoutAt - Date.now()) / 1000);
         if (countdownNumberEl) countdownNumberEl.textContent = Math.ceil(remaining);
         const ratio = remaining / timeout;
-        if (countdownRingEl) {
-            countdownRingEl.style.strokeDashoffset = circumference * (1 - ratio);
-        }
+        if (countdownRingEl) countdownRingEl.style.strokeDashoffset = circumference * (1 - ratio);
     }, 100);
 
     sceneChoiceState.timeoutId = setTimeout(() => {
@@ -529,23 +592,12 @@ function triggerChoicePause() {
     }, timeout * 1000);
 }
 
-// ============================================================
-//  ОБРАБОТКА ВЫБОРА
-// ============================================================
 async function handleChoice(choice) {
     sceneChoiceState.resolved = true;
-    if (sceneChoiceState.timeoutId) {
-        clearTimeout(sceneChoiceState.timeoutId);
-        sceneChoiceState.timeoutId = null;
-    }
-    if (sceneChoiceState.countdownId) {
-        clearInterval(sceneChoiceState.countdownId);
-        sceneChoiceState.countdownId = null;
-    }
+    if (sceneChoiceState.timeoutId) clearTimeout(sceneChoiceState.timeoutId);
+    if (sceneChoiceState.countdownId) clearInterval(sceneChoiceState.countdownId);
     choiceCountdownEl.classList.add('hidden');
-    if (overlay) {
-        overlay.querySelectorAll('.area').forEach(el => el.style.display = 'none');
-    }
+    if (overlay) overlay.querySelectorAll('.area').forEach(el => el.style.display = 'none');
     stopChoiceAmbient();
 
     const fallbackNext = choice.next || (currentScene && currentScene.next) || null;
@@ -563,18 +615,10 @@ async function handleChoice(choice) {
 async function handleNoChoice() {
     if (sceneChoiceState.resolved) return;
     sceneChoiceState.resolved = true;
-    if (sceneChoiceState.timeoutId) {
-        clearTimeout(sceneChoiceState.timeoutId);
-        sceneChoiceState.timeoutId = null;
-    }
-    if (sceneChoiceState.countdownId) {
-        clearInterval(sceneChoiceState.countdownId);
-        sceneChoiceState.countdownId = null;
-    }
+    if (sceneChoiceState.timeoutId) clearTimeout(sceneChoiceState.timeoutId);
+    if (sceneChoiceState.countdownId) clearInterval(sceneChoiceState.countdownId);
     choiceCountdownEl.classList.add('hidden');
-    if (overlay) {
-        overlay.querySelectorAll('.area').forEach(el => el.style.display = 'none');
-    }
+    if (overlay) overlay.querySelectorAll('.area').forEach(el => el.style.display = 'none');
     stopChoiceAmbient();
 
     const nc = (currentScene && currentScene.no_choice) || {};
@@ -590,9 +634,6 @@ async function handleNoChoice() {
     }
 }
 
-// ============================================================
-//  ПОСЛЕ ВСТАВКИ
-// ============================================================
 async function continueAfterInsert(afterChoice, fallbackNext) {
     if (afterChoice.resume_at != null) {
         const dur = (video && video.duration) || 0;
@@ -608,17 +649,10 @@ async function continueAfterInsert(afterChoice, fallbackNext) {
         showControls();
         return;
     }
-
-    if (fallbackNext) {
-        await loadScene(fallbackNext);
-        return;
-    }
+    if (fallbackNext) { await loadScene(fallbackNext); return; }
     onSceneEnded();
 }
 
-// ============================================================
-//  ОКОНЧАНИЕ СЦЕНЫ
-// ============================================================
 function onSceneEnded() {
     if (isAutoAdvancing) return;
     const scene = currentScene;
@@ -643,13 +677,10 @@ function onSceneEnded() {
     goToNextEpisode();
 }
 
-// ============================================================
-//  ВСТАВКА
-// ============================================================
 function playInsert(videoFile) {
     return new Promise((resolve) => {
         if (!insertPlayer) { resolve(); return; }
-        const src = resolveVideoUrl(videoFile);
+        const src = `/uploads/${videoFile}`;
         insertPlayer.src = src;
         insertPlayer.classList.add('active');
         insertPlayer.currentTime = 0;
@@ -673,7 +704,6 @@ function playInsert(videoFile) {
             insertPlayer.classList.remove('active');
             insertPlayer.removeAttribute('src');
             insertPlayer.load();
-
             isInsertPlaying = false;
             if (playPauseBtn) playPauseBtn.classList.remove('playing');
             resolve();
@@ -693,16 +723,13 @@ function playInsert(videoFile) {
         });
 
         setTimeout(() => {
-            if (!resolved && insertPlayer.readyState < 2) {
-                console.warn('Вставка не готова за 5 секунд, пропускаем');
-                finish();
-            }
+            if (!resolved && insertPlayer.readyState < 2) finish();
         }, 5000);
     });
 }
 
 // ============================================================
-//  ОБНОВЛЕНИЕ UI АКТИВНОГО ВИДЕО
+//  ОБНОВЛЕНИЕ UI
 // ============================================================
 function onActiveTimeUpdate() {
     const v = getActiveVideo();
@@ -744,14 +771,8 @@ function onActiveProgress() {
     }
 }
 
-function onActivePlay() {
-    if (playPauseBtn) playPauseBtn.classList.add('playing');
-    showControls();
-}
-function onActivePause() {
-    if (playPauseBtn) playPauseBtn.classList.remove('playing');
-    showControls();
-}
+function onActivePlay() { if (playPauseBtn) playPauseBtn.classList.add('playing'); showControls(); }
+function onActivePause() { if (playPauseBtn) playPauseBtn.classList.remove('playing'); showControls(); }
 
 function showBuffering() { if (bufferingSpinner) bufferingSpinner.classList.add('visible'); }
 function hideBuffering() { if (bufferingSpinner) bufferingSpinner.classList.remove('visible'); }
@@ -775,9 +796,6 @@ bindVideoEvents(video);
 bindVideoEvents(insertPlayer);
 if (video) video.addEventListener('ended', onSceneEnded);
 
-// ============================================================
-//  PLAY / PAUSE
-// ============================================================
 function togglePlay() {
     if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
     const v = getActiveVideo();
@@ -789,9 +807,6 @@ if (playPauseBtn) playPauseBtn.addEventListener('click', togglePlay);
 if (video) video.addEventListener('click', togglePlay);
 if (insertPlayer) insertPlayer.addEventListener('click', togglePlay);
 
-// ============================================================
-//  ТАЙМЛАЙН
-// ============================================================
 function seekFromEvent(e) {
     if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
     if (!timeline) return;
@@ -811,9 +826,6 @@ document.addEventListener('mouseup', () => { isDraggingTimeline = false; });
 document.addEventListener('touchmove', (e) => { if (isDraggingTimeline) seekFromEvent(e); }, { passive: true });
 document.addEventListener('touchend', () => { isDraggingTimeline = false; });
 
-// ============================================================
-//  ГРОМКОСТЬ
-// ============================================================
 if (volumeSlider) {
     volumeSlider.addEventListener('input', (e) => {
         const v = getActiveVideo();
@@ -842,17 +854,12 @@ function updateVolumeIcon() {
 }
 updateVolumeIcon();
 
-// ============================================================
-//  FULLSCREEN
-// ============================================================
 if (fullscreenBtn) {
     fullscreenBtn.addEventListener('click', () => {
         const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
         if (isIOS) {
             player.classList.toggle('ios-immersive');
-            if (player.classList.contains('ios-immersive')) {
-                setTimeout(() => window.scrollTo(0, 1), 50);
-            }
+            if (player.classList.contains('ios-immersive')) setTimeout(() => window.scrollTo(0, 1), 50);
             return;
         }
         if (video && video.webkitEnterFullscreen && !document.fullscreenEnabled) {
@@ -867,9 +874,6 @@ if (fullscreenBtn) {
     });
 }
 
-// ============================================================
-//  ПОКАЗ/СКРЫТИЕ ПАНЕЛИ
-// ============================================================
 function showControls() {
     if (!controls || !player) return;
     controls.classList.add('visible');
@@ -900,9 +904,6 @@ if (player) {
     });
 }
 
-// ============================================================
-//  ПОПАП СЕРИЙ
-// ============================================================
 if (episodeBtn) {
     episodeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -919,16 +920,10 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// ============================================================
-//  КНОПКИ УПРАВЛЕНИЯ
-// ============================================================
 if (backHomeBtn) {
     backHomeBtn.addEventListener('click', () => {
-        if (document.fullscreenElement) {
-            document.exitFullscreen().finally(() => { window.location.href = '/'; });
-        } else {
-            window.location.href = '/';
-        }
+        if (document.fullscreenElement) document.exitFullscreen().finally(() => { window.location.href = '/'; });
+        else window.location.href = '/';
     });
 }
 if (restartProgressBtn) {
@@ -948,75 +943,29 @@ if (restartBtn) {
 const backBtn = document.getElementById('backBtn');
 if (backBtn) backBtn.addEventListener('click', () => { window.location.href = '/'; });
 
-// Кнопка «Поделиться сериалом» на экране конца
-const shareEndBtn = document.getElementById('shareEndBtn');
-if (shareEndBtn) {
-    shareEndBtn.addEventListener('click', async () => {
-        const url = window.location.origin + '/';
-        const title = (seriesData && seriesData.title) || 'За край';
-        const text = 'Посмотри интерактивный сериал «За край»';
-        const ua = navigator.userAgent || '';
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
-        if (isMobile && navigator.share) {
-            try { await navigator.share({ title, text, url }); return; } catch (e) {}
-        }
-        try {
-            await navigator.clipboard.writeText(url);
-            shareEndBtn.querySelector('span') || (shareEndBtn.textContent = 'Ссылка скопирована!');
-            setTimeout(() => { shareEndBtn.innerHTML = shareEndBtn.dataset.originalHtml; }, 1800);
-        } catch (e) {
-            prompt('Скопируйте ссылку:', url);
-        }
-    });
-    shareEndBtn.dataset.originalHtml = shareEndBtn.innerHTML;
-}
-
-// ============================================================
-//  КЛАВИАТУРА
-// ============================================================
 document.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
     switch (e.code) {
-        case 'Space':
-            e.preventDefault();
-            if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
-            togglePlay();
-            break;
-        case 'ArrowRight':
-            if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
-            { const v = getActiveVideo(); if (v) v.currentTime += 5; }
-            showControls();
-            break;
-        case 'ArrowLeft':
-            if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
-            { const v = getActiveVideo(); if (v) v.currentTime -= 5; }
-            showControls();
-            break;
+        case 'Space': e.preventDefault(); if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return; togglePlay(); break;
+        case 'ArrowRight': if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return; { const v = getActiveVideo(); if (v) v.currentTime += 5; } showControls(); break;
+        case 'ArrowLeft': if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return; { const v = getActiveVideo(); if (v) v.currentTime -= 5; } showControls(); break;
         case 'KeyF': if (fullscreenBtn) fullscreenBtn.click(); break;
     }
 });
 
-// ============================================================
-//  ЗАПУСК
-// ============================================================
 (async () => {
     try {
         await loadSeries();
-
-        const saved = loadProgress();
+        const saved = await loadStoryDataAsync();
         if (saved && saved.episodeId && saved.sceneId) {
-            const exists = episodesList.some(e => e.id == saved.episodeId);
-            if (exists) {
-                await loadEpisode(saved.episodeId, saved.sceneId);
-                return;
-            }
+            storyState = { ...initialStoryState, ...(saved.storyState || {}) };
+            playedInserts = saved.playedInserts || [];
+            watchedEpisodes = saved.watchedEpisodes || [];
+            await loadEpisode(saved.episodeId, saved.sceneId);
+            return;
         }
-
-        if (episodeIdFromUrl) {
-            await loadEpisode(episodeIdFromUrl, null);
-        } else if (episodesList.length > 0) {
-            await loadEpisode(episodesList[0].id, null);
-        }
+        if (episodeIdFromUrl) await loadEpisode(episodeIdFromUrl, null);
+        else if (episodesList.length > 0) await loadEpisode(episodesList[0].id, null);
     } catch (err) {
         console.error(err);
     }
