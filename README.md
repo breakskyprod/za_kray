@@ -207,7 +207,7 @@ choiceAmbient.src = '/uploads/choice_ambient.mp3';
 
 ## 🎬 Как добавить новую серию
 
-### 1. Снять видео (9 файлов)
+### 1. Снять видео 
 
 **Основные сцены:**
 - `epN_s1.mp4` — до первого выбора
@@ -218,86 +218,6 @@ choiceAmbient.src = '/uploads/choice_ambient.mp3';
 - `epN_s1_A.mp4`, `epN_s1_B.mp4`, `epN_s1_NC.mp4`
 - `epN_s2_A.mp4`, `epN_s2_B.mp4`, `epN_s2_NC.mp4`
 
-### 2. Загрузить на S3
-
-В бакет через панель Selectel / VK Cloud.
-
-Проверьте CORS-политику бакета:
-
-```json
-[
-  {
-    "AllowedOrigins": ["*"],
-    "AllowedMethods": ["GET", "HEAD"],
-    "AllowedHeaders": ["Range"],
-    "ExposeHeaders": ["Content-Length", "Content-Range"],
-    "MaxAgeSeconds": 3600
-  }
-]
-```
-
-### 3. Добавить серию в `series_v2.json`
-
-```json
-{
-  "id": 5,
-  "episode_number": 5,
-  "title": "Название",
-  "cover": "https://cdn.example.com/ep5_cover.jpg",
-  "scenes": [
-    {
-      "id": "ep5_scene1",
-      "type": "ordinary",
-      "video": "https://cdn.example.com/ep5_s1.mp4",
-      "pause_at": 480,
-      "choice_timeout": 10,
-      "choices": [
-        {
-          "id": "A",
-          "label": "Первый выбор",
-          "area": { "x": 10, "y": 55, "width": 35, "height": 22 },
-          "after_choice": { "video": "https://cdn.example.com/ep5_s1_A.mp4" }
-        },
-        {
-          "id": "B",
-          "label": "Второй выбор",
-          "area": { "x": 55, "y": 55, "width": 35, "height": 22 },
-          "after_choice": { "video": "https://cdn.example.com/ep5_s1_B.mp4" }
-        }
-      ],
-      "no_choice": {
-        "after_choice": { "video": "https://cdn.example.com/ep5_s1_NC.mp4" }
-      },
-      "next": "ep5_scene2"
-    },
-    {
-      "id": "ep5_scene2",
-      "type": "ordinary",
-      "video": "https://cdn.example.com/ep5_s2.mp4",
-      "pause_at": 480,
-      "choice_timeout": 10,
-      "choices": [],
-      "no_choice": {},
-      "next": "ep5_credits"
-    },
-    {
-      "id": "ep5_credits",
-      "type": "final",
-      "video": "https://cdn.example.com/ep5_credits.mp4"
-    }
-  ]
-}
-```
-
-### 4. Задеплоить
-
-```bash
-git add server/data/series_v2.json
-git commit -m "Add episode 5"
-git push
-```
-
----
 
 ## 🔧 Ключевые поля JSON
 
@@ -418,11 +338,9 @@ git push
 Этап 2. Установка FastPanel
 Подключитесь к серверу по SSH из терминала (или через встроенную консоль Reg.ru):
 
-bash
 ssh root@ВАШ_IP_АДРЕС
 Установите FastPanel одной командой (официальный скрипт):
 
-bash
 wget https://repo.fastpanel.direct/install_fastpanel.sh -O - | bash -
 После завершения установки скрипт выведет ссылку для входа, логин и пароль. Зайдите в FastPanel по ссылке (обычно вида https://ВАШ_IP:8888).
 
@@ -482,7 +400,7 @@ PORT=3000
 Проверьте права доступа к файлам (они должны быть доступны для чтения пользователю, под которым работает Node.js).
 
 
-Этап 5.1. Подготовка и конвертация видеофайлов (FFmpeg)
+Этап 6. Подготовка и конвертация видеофайлов (FFmpeg)
 Чтобы не загружать с ноутбука 4 версии каждого файла (это долго), мы загрузили только исходники в 1080p, а перекодирование поручим серверу.
 
 1. Установите FFmpeg на сервер:
@@ -548,7 +466,7 @@ nohup bash transcode.sh > transcode.log 2>&1 &
 5. Проверка прогресса:
 Можно закрыть терминал, процесс будет идти в фоне. Чтобы проверить статус, выполните "tail -f transcode.log". Когда скрипт завершится, в папке uploads появятся файлы с суффиксами _1080, _720, _480, _360.
 
-Этап 6. Домен и SSL (HTTPS)
+Этап 7. Домен и SSL (HTTPS)
 В панели вашего доменного регистратора (Reg.ru) привяжите домен к серверу:
 
 Создайте A-запись: za-kray.ru -> ВАШ_IP_АДРЕС.
@@ -561,7 +479,7 @@ nohup bash transcode.sh > transcode.log 2>&1 &
 
 Включите галочку «Форсировать HTTPS».
 
-Этап 7. Финальная проверка
+Этап 8. Финальная проверка
 □ Сайт открывается по адресу.
 □ В плеере воспроизводится видео (запросы идут на /uploads/имя_файла.mp4).
 □ При переключении качества плеер подгружает версии _720, _1080 и т.д.
