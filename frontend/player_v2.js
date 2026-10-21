@@ -1,8 +1,74 @@
 // ============================================================
 //  КОНСТАНТЫ
 // ============================================================
-const SKIP_BUTTON_DELAY = 10;       // за сколько секунд до конца показывать «Следующая серия»
-const PRELOAD_DELAY = 5000;         // через сколько после старта сцены запускать прелоад (мс)
+const SKIP_BUTTON_DELAY = 10;
+const PRELOAD_DELAY = 5000;
+
+// КАЧЕСТВА ВИДЕО
+const QUALITY_LEVELS = [1080, 720, 480, 360];
+const QUALITY_KEY = 'video_quality';
+let currentQuality = loadQualityPreference();
+
+function loadQualityPreference() {
+    try {
+        const raw = localStorage.getItem(QUALITY_KEY);
+        if (raw === 'auto') return 'auto';
+        const n = parseInt(raw, 10);
+        if (QUALITY_LEVELS.includes(n)) return n;
+        return 'auto';
+    } catch (e) { return 'auto'; }
+}
+
+function saveQualityPreference(q) {
+    try { localStorage.setItem(QUALITY_KEY, String(q)); } catch (e) {}
+}
+
+function autoQuality() {
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const et = conn && conn.effectiveType;
+    const ua = navigator.userAgent || '';
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
+    const isSmallScreen = window.innerWidth < 768;
+
+    if (et === 'slow-2g' || et === '2g') return 360;
+    if (et === '3g') return isMobile || isSmallScreen ? 480 : 720;
+    if (isMobile || isSmallScreen) return 720;
+    return 1080;
+}
+
+function buildQualityChain(requested) {
+    const chain = [];
+    const startIdx = QUALITY_LEVELS.indexOf(requested);
+    if (startIdx === -1) {
+        return QUALITY_LEVELS.slice().concat(['base']);
+    }
+    for (let i = startIdx; i < QUALITY_LEVELS.length; i++) {
+        chain.push(QUALITY_LEVELS[i]);
+    }
+    chain.push('base');
+    return chain;
+}
+
+function getVideoUrl(baseName, quality) {
+    if (!baseName) return '';
+    if (/^https?:\/\//i.test(baseName)) return baseName; // если внешняя ссылка
+    
+    if (quality === 'base') {
+        return `/uploads/${baseName}`;
+    }
+    const stem = baseName.replace(/\.mp4$/i, '');
+    return `/uploads/${stem}_${quality}.mp4`;
+}
+
+function updateQualityLabel() {
+    const el = document.getElementById('qualityLabel');
+    if (!el) return;
+    if (currentQuality === 'auto') {
+        el.textContent = 'AUTO';
+    } else {
+        el.textContent = currentQuality + 'p';
+    }
+}
 
 // ============================================================
 //  ФИКС ВЫСОТЫ ВЬЮПОРТА (iOS)
@@ -33,9 +99,7 @@ function safePlay(el) {
                 }
             });
         }
-    } catch (e) {
-        console.warn('play() выбросил:', e);
-    }
+    } catch (e) {}
 }
 
 // ============================================================
@@ -108,13 +172,60 @@ function preloadNextScene() {
         .then(r => r.json())
         .then(nextScene => {
             if (!nextScene.video) return;
-            const url = `/uploads/${nextScene.video}`;
+            
+            // Берем первое доступное качество из цепочки
+            const requestedQ = currentQuality === 'auto' ? autoQuality() : currentQuality;
+            const chain = buildQualityChain(requestedQ);
+            const url = getVideoUrl(nextScene.video, chain[0]);
+            
             if (preloadedUrls.has(url)) return;
             preloadedUrls.add(url);
             console.log(`[preload] Фоновая загрузка: ${url}`);
             fetch(url, { cache: 'force-cache' }).catch(() => {});
         })
         .catch(() => {});
+}
+
+// ============================================================
+//  ЗАГРУЗКА ВИДЕО С ФОЛБЭКОМ
+// ============================================================
+function loadVideoWithFallback(baseName, qualitySetting, targetVideo) {
+    return new Promise((resolve) => {
+        const requestedQ = qualitySetting === 'auto' ? autoQuality() : qualitySetting;
+        const chain = buildQualityChain(requestedQ);
+        let index = 0;
+
+        function tryNext() {
+            if (index >= chain.length) {
+                console.warn('Не удалось загрузить ни одно качество для', baseName);
+                resolve(false);
+                return;
+            }
+            const q = chain[index++];
+            const url = getVideoUrl(baseName, q);
+            console.log(`[quality] Загрузка: ${q} (${url})`);
+
+            targetVideo.src = url;
+            targetVideo.load();
+
+            const onError = () => {
+                targetVideo.removeEventListener('error', onError);
+                targetVideo.removeEventListener('canplay', onCanPlay);
+                console.warn(`Качество ${q} не найдено, пробуем ниже...`);
+                tryNext();
+            };
+
+            const onCanPlay = () => {
+                targetVideo.removeEventListener('error', onError);
+                targetVideo.removeEventListener('canplay', onCanPlay);
+                resolve(true);
+            };
+
+            targetVideo.addEventListener('error', onError);
+            targetVideo.addEventListener('canplay', onCanPlay, { once: true });
+        }
+        tryNext();
+    });
 }
 
 // ============================================================
@@ -168,7 +279,7 @@ function clearProgress() {
 }
 
 // ============================================================
-//  ПАРСЕР УСЛОВИЙ (ДЛЯ СЦЕНАРИЯ)
+//  ПАРСЕР УСЛОВИЙ
 // ============================================================
 function parseCondition(expr) {
     if (!expr || typeof expr !== 'string') return true;
@@ -176,36 +287,11 @@ function parseCondition(expr) {
     let pos = 0;
     function peek() { return tokens[pos]; }
     function next() { return tokens[pos++]; }
-
-    function parseOr() {
-        let left = parseAnd();
-        while (peek() && peek().type === 'op' && peek().value === '||') { next(); left = { type: 'or', left, right: parseAnd() }; }
-        return left;
-    }
-    function parseAnd() {
-        let left = parseComparison();
-        while (peek() && peek().type === 'op' && peek().value === '&&') { next(); left = { type: 'and', left, right: parseComparison() }; }
-        return left;
-    }
-    function parseComparison() {
-        let left = parseUnary();
-        if (peek() && peek().type === 'op' && (peek().value === '==' || peek().value === '!=')) {
-            const op = next().value; return { type: 'compare', op, left, right: parseUnary() };
-        }
-        return left;
-    }
-    function parseUnary() {
-        if (peek() && peek().type === 'op' && peek().value === '!') { next(); return { type: 'not', value: parseUnary() }; }
-        return parseAtom();
-    }
-    function parseAtom() {
-        const t = next();
-        if (!t) return { type: 'lit', value: false };
-        if (t.type === 'paren') return t.value;
-        if (t.type === 'literal') return { type: 'lit', value: t.value };
-        if (t.type === 'ident') return { type: 'ident', name: t.value };
-        return { type: 'lit', value: false };
-    }
+    function parseOr() { let left = parseAnd(); while (peek() && peek().type === 'op' && peek().value === '||') { next(); left = { type: 'or', left, right: parseAnd() }; } return left; }
+    function parseAnd() { let left = parseComparison(); while (peek() && peek().type === 'op' && peek().value === '&&') { next(); left = { type: 'and', left, right: parseComparison() }; } return left; }
+    function parseComparison() { let left = parseUnary(); if (peek() && peek().type === 'op' && (peek().value === '==' || peek().value === '!=')) { const op = next().value; return { type: 'compare', op, left, right: parseUnary() }; } return left; }
+    function parseUnary() { if (peek() && peek().type === 'op' && peek().value === '!') { next(); return { type: 'not', value: parseUnary() }; } return parseAtom(); }
+    function parseAtom() { const t = next(); if (!t) return { type: 'lit', value: false }; if (t.type === 'paren') return t.value; if (t.type === 'literal') return { type: 'lit', value: t.value }; if (t.type === 'ident') return { type: 'ident', name: t.value }; return { type: 'lit', value: false }; }
     function evaluate(node) {
         switch (node.type) {
             case 'lit': return node.value;
@@ -213,12 +299,7 @@ function parseCondition(expr) {
             case 'not': return !evaluate(node.value);
             case 'and': return evaluate(node.left) && evaluate(node.right);
             case 'or':  return evaluate(node.left) || evaluate(node.right);
-            case 'compare': {
-                const l = evaluate(node.left), r = evaluate(node.right);
-                if (node.op === '==') return l == r;
-                if (node.op === '!=') return l != r;
-                return false;
-            }
+            case 'compare': { const l = evaluate(node.left), r = evaluate(node.right); if (node.op === '==') return l == r; if (node.op === '!=') return l != r; return false; }
         }
         return false;
     }
@@ -235,28 +316,10 @@ function tokenizeCondition(expr) {
         if (c === '=' && expr[i+1] === '=') { tokens.push({ type: 'op', value: '==' }); i += 2; continue; }
         if (c === '!' && expr[i+1] === '=') { tokens.push({ type: 'op', value: '!=' }); i += 2; continue; }
         if (c === '!') { tokens.push({ type: 'op', value: '!' }); i++; continue; }
-        if (c === '(') {
-            let depth = 1, j = i + 1;
-            while (j < expr.length && depth > 0) { if (expr[j] === '(') depth++; else if (expr[j] === ')') depth--; j++; }
-            const inner = expr.slice(i + 1, j - 1);
-            tokens.push({ type: 'paren', value: buildTree(tokenizeCondition(inner)) }); i = j; continue;
-        }
-        if (c === '"' || c === "'") {
-            let j = i + 1; while (j < expr.length && expr[j] !== c) j++;
-            tokens.push({ type: 'literal', value: expr.slice(i + 1, j) }); i = j + 1; continue;
-        }
-        if (/\d/.test(c)) {
-            let j = i; while (j < expr.length && /[\d.]/.test(expr[j])) j++;
-            tokens.push({ type: 'literal', value: parseFloat(expr.slice(i, j)) }); i = j; continue;
-        }
-        if (/[a-zA-Z_]/.test(c)) {
-            let j = i; while (j < expr.length && /[a-zA-Z0-9_]/.test(expr[j])) j++;
-            const name = expr.slice(i, j);
-            if (name === 'true') tokens.push({ type: 'literal', value: true });
-            else if (name === 'false') tokens.push({ type: 'literal', value: false });
-            else tokens.push({ type: 'ident', value: name });
-            i = j; continue;
-        }
+        if (c === '(') { let depth = 1, j = i + 1; while (j < expr.length && depth > 0) { if (expr[j] === '(') depth++; else if (expr[j] === ')') depth--; j++; } const inner = expr.slice(i + 1, j - 1); tokens.push({ type: 'paren', value: buildTree(tokenizeCondition(inner)) }); i = j; continue; }
+        if (c === '"' || c === "'") { let j = i + 1; while (j < expr.length && expr[j] !== c) j++; tokens.push({ type: 'literal', value: expr.slice(i + 1, j) }); i = j + 1; continue; }
+        if (/\d/.test(c)) { let j = i; while (j < expr.length && /[\d.]/.test(expr[j])) j++; tokens.push({ type: 'literal', value: parseFloat(expr.slice(i, j)) }); i = j; continue; }
+        if (/[a-zA-Z_]/.test(c)) { let j = i; while (j < expr.length && /[a-zA-Z0-9_]/.test(expr[j])) j++; const name = expr.slice(i, j); if (name === 'true') tokens.push({ type: 'literal', value: true }); else if (name === 'false') tokens.push({ type: 'literal', value: false }); else tokens.push({ type: 'ident', value: name }); i = j; continue; }
         i++;
     }
     return tokens;
@@ -314,7 +377,10 @@ const countdownNumberEl = document.getElementById('countdownNumber');
 const countdownRingEl = document.getElementById('countdownRing');
 const bufferingSpinner = document.getElementById('bufferingSpinner');
 const skipBtn = document.getElementById('skipBtn');
-const episodesBtn = document.getElementById('episodesBtn'); // Кнопка в нижней панели
+const episodesBtn = document.getElementById('episodesBtn');
+const qualityBtn = document.getElementById('qualityBtn');
+const qualityPopup = document.getElementById('qualityPopup');
+const qualityPopupList = document.getElementById('qualityPopupList');
 
 const params = new URLSearchParams(window.location.search);
 const episodeIdFromUrl = params.get('episodeId');
@@ -336,6 +402,75 @@ function formatTime(seconds) {
 }
 
 // ============================================================
+//  ПОПАП КАЧЕСТВА
+// ============================================================
+function buildQualityPopup() {
+    if (!qualityPopupList) return;
+    qualityPopupList.innerHTML = '';
+    const items = [
+        { value: 'auto', label: 'Авто', badge: currentQuality === 'auto' ? `${autoQuality()}p` : null },
+        { value: 1080, label: '1080p', badge: 'Full HD' },
+        { value: 720,  label: '720p',  badge: 'HD' },
+        { value: 480,  label: '480p',  badge: null },
+        { value: 360,  label: '360p',  badge: null }
+    ];
+    items.forEach(it => {
+        const div = document.createElement('div');
+        div.className = 'quality-item' + (currentQuality === it.value ? ' active' : '');
+        div.dataset.value = it.value;
+        div.innerHTML = `
+            <span>${it.label}</span>
+            ${it.badge ? `<span class="q-badge">${it.badge}</span>` : ''}
+        `;
+        div.addEventListener('click', () => {
+            changeQuality(it.value);
+            qualityPopup.classList.add('hidden');
+        });
+        qualityPopupList.appendChild(div);
+    });
+}
+
+async function changeQuality(newQuality) {
+    currentQuality = newQuality;
+    saveQualityPreference(newQuality);
+    updateQualityLabel();
+    buildQualityPopup();
+
+    if (!currentScene || !currentScene.video) return;
+
+    const curTime = video.currentTime;
+    const wasPlaying = !video.paused && !sceneChoiceState.triggered;
+
+    video.pause();
+    showBuffering();
+
+    const success = await loadVideoWithFallback(currentScene.video, currentQuality, video);
+    
+    if (success) {
+        video.currentTime = curTime;
+        if (wasPlaying) safePlay(video);
+    }
+    hideBuffering();
+}
+
+if (qualityBtn && qualityPopup) {
+    qualityBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        buildQualityPopup();
+        qualityPopup.classList.toggle('hidden');
+        showControls();
+    });
+}
+document.addEventListener('click', (e) => {
+    if (qualityPopup && !qualityPopup.classList.contains('hidden') &&
+        !qualityPopup.contains(e.target) &&
+        qualityBtn && !qualityBtn.contains(e.target)) {
+        qualityPopup.classList.add('hidden');
+    }
+});
+updateQualityLabel();
+
+// ============================================================
 //  ЗАГРУЗКА СЕРИАЛА
 // ============================================================
 async function loadSeries() {
@@ -348,7 +483,7 @@ async function loadSeries() {
 }
 
 // ============================================================
-//  РЕНДЕР СПИСКА СЕРИЙ (ГОРИЗОНТАЛЬНЫЙ)
+//  РЕНДЕР СПИСКА СЕРИЙ
 // ============================================================
 function renderEpisodesList() {
     if (!popupList) return;
@@ -356,18 +491,9 @@ function renderEpisodesList() {
     episodesList.forEach(ep => {
         const item = document.createElement('div');
         item.className = 'ep-item' + (ep.id == currentEpisodeId ? ' active' : '');
-        
-        // Обложка
-        const cover = ep.cover && ep.cover.trim() !== '' 
-            ? `/uploads/${ep.cover}` 
-            : `/images/frame${ep.episode_number}.jpg`;
-        
+        const cover = ep.cover && ep.cover.trim() !== '' ? `/uploads/${ep.cover}` : `/images/frame${ep.episode_number}.jpg`;
         item.style.backgroundImage = `url('${cover}')`;
-        
-        // Только бейдж "Серия N", без названия
-        item.innerHTML = `
-            <span class="ep-item-badge">Серия ${ep.episode_number}</span>
-        `;
+        item.innerHTML = `<span class="ep-item-badge">Серия ${ep.episode_number}</span>`;
 
         item.addEventListener('click', () => {
             loadEpisode(ep.id, null);
@@ -379,15 +505,10 @@ function renderEpisodesList() {
 
 async function loadEpisode(epId, sceneIdToLoad = null) {
     currentEpisodeId = epId;
-    
-    // Обновляем активный класс в списке
     if (popupList) {
         Array.from(popupList.children).forEach((el, index) => {
-            if (episodesList[index] && episodesList[index].id == epId) {
-                el.classList.add('active');
-            } else {
-                el.classList.remove('active');
-            }
+            if (episodesList[index] && episodesList[index].id == epId) el.classList.add('active');
+            else el.classList.remove('active');
         });
     }
 
@@ -398,16 +519,10 @@ async function loadEpisode(epId, sceneIdToLoad = null) {
         currentEpisodeScenes = episode.scenes || [];
 
         let targetScene = null;
-        if (sceneIdToLoad) {
-            targetScene = currentEpisodeScenes.find(s => s.id === sceneIdToLoad);
-        }
-        if (!targetScene) {
-            targetScene = currentEpisodeScenes.find(s => s.type === 'start') || currentEpisodeScenes[0];
-        }
-        if (!targetScene) {
-            alert('В этой серии нет сцен');
-            return;
-        }
+        if (sceneIdToLoad) targetScene = currentEpisodeScenes.find(s => s.id === sceneIdToLoad);
+        if (!targetScene) targetScene = currentEpisodeScenes.find(s => s.type === 'start') || currentEpisodeScenes[0];
+        
+        if (!targetScene) { alert('В этой серии нет сцен'); return; }
         await loadScene(targetScene.id);
 
         fetch('/api/stats/view', {
@@ -445,7 +560,7 @@ function computeChoicePauseAt(scene) {
 }
 
 // ============================================================
-//  МУЗЫКА НА ВРЕМЯ ВЫБОРА
+//  МУЗЫКА
 // ============================================================
 function startChoiceAmbient() {
     if (!choiceAmbient) return;
@@ -461,44 +576,25 @@ function stopChoiceAmbient() {
 }
 
 // ============================================================
-//  КНОПКА «СЛЕДУЮЩАЯ СЕРИЯ»
+//  СЛЕДУЮЩАЯ СЕРИЯ
 // ============================================================
-function showSkipButton() {
-    if (!skipBtn || skipButtonVisible) return;
-    skipButtonVisible = true;
-    skipBtn.classList.remove('hidden');
-}
-
-function hideSkipButton() {
-    if (!skipBtn || !skipButtonVisible) return;
-    skipButtonVisible = false;
-    skipBtn.classList.add('hidden');
-}
-
+function showSkipButton() { if (skipBtn && !skipButtonVisible) { skipButtonVisible = true; skipBtn.classList.remove('hidden'); } }
+function hideSkipButton() { if (skipBtn && skipButtonVisible) { skipButtonVisible = false; skipBtn.classList.add('hidden'); } }
 function checkSkipButton(cur, dur) {
-    if (!currentScene || currentScene.type !== 'final') {
-        hideSkipButton();
-        return;
-    }
+    if (!currentScene || currentScene.type !== 'final') { hideSkipButton(); return; }
     if (!dur || dur <= 0) return;
     const remaining = dur - cur;
     if (remaining <= SKIP_BUTTON_DELAY && remaining > 0) showSkipButton();
     else if (remaining <= 0) hideSkipButton();
 }
-
 function goToNextEpisode() {
     const idx = episodesList.findIndex(e => e.id == currentEpisodeId);
     const nextEp = (idx >= 0 && idx < episodesList.length - 1) ? episodesList[idx + 1] : null;
     if (nextEp) { isAutoAdvancing = true; loadEpisode(nextEp.id, null); }
     else { endMessage.classList.remove('hidden'); clearProgress(); }
 }
-
 if (skipBtn) {
-    skipBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        hideSkipButton();
-        goToNextEpisode();
-    });
+    skipBtn.addEventListener('click', (e) => { e.stopPropagation(); hideSkipButton(); goToNextEpisode(); });
 }
 
 // ============================================================
@@ -520,12 +616,10 @@ async function loadScene(sceneId) {
         if (scene.scene_effects) applyEffects(scene.scene_effects);
 
         if (scene.video && scene.video.trim() !== '') {
-            video.src = `/uploads/${scene.video}`;
-            video.load();
-            video.play().catch(() => {
-                controls.classList.add('visible');
-                player.classList.add('show-controls');
-            });
+            showBuffering();
+            await loadVideoWithFallback(scene.video, currentQuality, video);
+            hideBuffering();
+            safePlay(video);
         } else {
             video.removeAttribute('src');
             video.load();
@@ -557,18 +651,13 @@ function buildChoiceAreas(scene) {
         if (!area) return;
         const div = document.createElement('div');
         div.className = 'area';
-        div.style.left = area.x + '%';
-        div.style.top = area.y + '%';
-        div.style.width = area.width + '%';
-        div.style.height = area.height + '%';
+        div.style.left = area.x + '%'; div.style.top = area.y + '%';
+        div.style.width = area.width + '%'; div.style.height = area.height + '%';
         div.style.display = 'none';
         div.dataset.choiceId = choice.id;
-
         const label = document.createElement('div');
-        label.className = 'label';
-        label.textContent = choice.label || '';
+        label.className = 'label'; label.textContent = choice.label || '';
         div.appendChild(label);
-
         div.addEventListener('click', (e) => {
             e.stopPropagation();
             if (sceneChoiceState.resolved) return;
@@ -581,10 +670,8 @@ function buildChoiceAreas(scene) {
 function triggerChoicePause() {
     if (!currentScene || !currentScene.choices || sceneChoiceState.resolved) return;
     sceneChoiceState.triggered = true;
-
     if (video) video.pause();
     if (overlay) overlay.querySelectorAll('.area').forEach(el => el.style.display = 'flex');
-
     startChoiceAmbient();
 
     const timeout = sceneChoiceState.timeoutDuration;
@@ -593,21 +680,15 @@ function triggerChoicePause() {
     if (choiceCountdownEl) choiceCountdownEl.classList.remove('hidden');
     if (countdownNumberEl) countdownNumberEl.textContent = timeout;
     const circumference = 2 * Math.PI * 19;
-    if (countdownRingEl) {
-        countdownRingEl.style.strokeDasharray = circumference;
-        countdownRingEl.style.strokeDashoffset = 0;
-    }
+    if (countdownRingEl) { countdownRingEl.style.strokeDasharray = circumference; countdownRingEl.style.strokeDashoffset = 0; }
 
     sceneChoiceState.countdownId = setInterval(() => {
         const remaining = Math.max(0, (sceneChoiceState.timeoutAt - Date.now()) / 1000);
         if (countdownNumberEl) countdownNumberEl.textContent = Math.ceil(remaining);
-        const ratio = remaining / timeout;
-        if (countdownRingEl) countdownRingEl.style.strokeDashoffset = circumference * (1 - ratio);
+        if (countdownRingEl) countdownRingEl.style.strokeDashoffset = circumference * (1 - (remaining / timeout));
     }, 100);
 
-    sceneChoiceState.timeoutId = setTimeout(() => {
-        if (!sceneChoiceState.resolved) handleNoChoice();
-    }, timeout * 1000);
+    sceneChoiceState.timeoutId = setTimeout(() => { if (!sceneChoiceState.resolved) handleNoChoice(); }, timeout * 1000);
 }
 
 async function handleChoice(choice) {
@@ -619,7 +700,6 @@ async function handleChoice(choice) {
     stopChoiceAmbient();
 
     const fallbackNext = choice.next || (currentScene && currentScene.next) || null;
-
     if (choice.after_choice && choice.after_choice.video) {
         await playInsert(choice.after_choice.video);
         await continueAfterInsert(choice.after_choice, fallbackNext);
@@ -641,7 +721,6 @@ async function handleNoChoice() {
 
     const nc = (currentScene && currentScene.no_choice) || {};
     const fallbackNext = nc.next || (currentScene && currentScene.next) || null;
-
     if (nc.after_choice && nc.after_choice.video) {
         await playInsert(nc.after_choice.video);
         await continueAfterInsert(nc.after_choice, fallbackNext);
@@ -655,17 +734,9 @@ async function handleNoChoice() {
 async function continueAfterInsert(afterChoice, fallbackNext) {
     if (afterChoice.resume_at != null) {
         const dur = (video && video.duration) || 0;
-        if (dur > 0 && afterChoice.resume_at >= dur - 0.5) {
-            if (video) video.currentTime = dur - 0.1;
-            setTimeout(() => onSceneEnded(), 150);
-            return;
-        }
-        if (video) {
-            video.currentTime = Math.min(afterChoice.resume_at, dur > 0 ? dur - 0.1 : afterChoice.resume_at);
-            safePlay(video);
-        }
-        showControls();
-        return;
+        if (dur > 0 && afterChoice.resume_at >= dur - 0.5) { if (video) video.currentTime = dur - 0.1; setTimeout(() => onSceneEnded(), 150); return; }
+        if (video) { video.currentTime = Math.min(afterChoice.resume_at, dur > 0 ? dur - 0.1 : afterChoice.resume_at); safePlay(video); }
+        showControls(); return;
     }
     if (fallbackNext) { await loadScene(fallbackNext); return; }
     onSceneEnded();
@@ -675,31 +746,24 @@ function onSceneEnded() {
     if (isAutoAdvancing) return;
     const scene = currentScene;
     if (!scene) return;
-
     hideSkipButton();
-
-    if (scene.next) {
-        isAutoAdvancing = true;
-        setTimeout(() => loadScene(scene.next), 300);
-        return;
-    }
-
+    if (scene.next) { isAutoAdvancing = true; setTimeout(() => loadScene(scene.next), 300); return; }
     const idx = currentEpisodeScenes.findIndex(s => s.id === currentSceneId);
-    if (idx >= 0 && idx < currentEpisodeScenes.length - 1) {
-        const nextScene = currentEpisodeScenes[idx + 1];
-        isAutoAdvancing = true;
-        setTimeout(() => loadScene(nextScene.id), 300);
-        return;
-    }
-
+    if (idx >= 0 && idx < currentEpisodeScenes.length - 1) { const nextScene = currentEpisodeScenes[idx + 1]; isAutoAdvancing = true; setTimeout(() => loadScene(nextScene.id), 300); return; }
     goToNextEpisode();
 }
 
 function playInsert(videoFile) {
     return new Promise((resolve) => {
         if (!insertPlayer) { resolve(); return; }
-        const src = `/uploads/${videoFile}`;
-        insertPlayer.src = src;
+        
+        // Для вставок тоже применяем логику качества
+        const requestedQ = currentQuality === 'auto' ? autoQuality() : currentQuality;
+        const chain = buildQualityChain(requestedQ);
+        // Для простоты берем базовый файл, если вставка не тяжелая, или первое качество
+        const url = getVideoUrl(videoFile, chain[0]);
+        
+        insertPlayer.src = url;
         insertPlayer.classList.add('active');
         insertPlayer.currentTime = 0;
 
@@ -710,88 +774,42 @@ function playInsert(videoFile) {
         if (timelineProgress) timelineProgress.style.width = '0%';
         if (timelineThumb) timelineThumb.style.left = '0%';
         if (timelineBuffered) timelineBuffered.style.width = '0%';
-
         if (video) video.pause();
 
         let resolved = false;
         const finish = () => {
-            if (resolved) return;
-            resolved = true;
-            insertPlayer.removeEventListener('ended', finish);
-            insertPlayer.removeEventListener('error', onError);
-            insertPlayer.classList.remove('active');
-            insertPlayer.removeAttribute('src');
-            insertPlayer.load();
-            isInsertPlaying = false;
-            if (playPauseBtn) playPauseBtn.classList.remove('playing');
+            if (resolved) return; resolved = true;
+            insertPlayer.removeEventListener('ended', finish); insertPlayer.removeEventListener('error', onError);
+            insertPlayer.classList.remove('active'); insertPlayer.removeAttribute('src'); insertPlayer.load();
+            isInsertPlaying = false; if (playPauseBtn) playPauseBtn.classList.remove('playing');
             resolve();
         };
-
-        const onError = () => {
-            console.warn('Вставка не загрузилась, пропускаем:', src);
-            finish();
-        };
-
-        insertPlayer.addEventListener('ended', finish);
-        insertPlayer.addEventListener('error', onError);
-
-        insertPlayer.play().catch(() => {
-            insertPlayer.muted = true;
-            insertPlayer.play().catch(() => onError());
-        });
-
-        setTimeout(() => {
-            if (!resolved && insertPlayer.readyState < 2) finish();
-        }, 5000);
+        const onError = () => { console.warn('Вставка не загрузилась, пропускаем:', url); finish(); };
+        insertPlayer.addEventListener('ended', finish); insertPlayer.addEventListener('error', onError);
+        insertPlayer.play().catch(() => { insertPlayer.muted = true; insertPlayer.play().catch(() => onError()); });
+        setTimeout(() => { if (!resolved && insertPlayer.readyState < 2) finish(); }, 5000);
     });
 }
 
 // ============================================================
-//  ОБНОВЛЕНИЕ UI
+//  UI И ИНТЕРФЕЙС
 // ============================================================
 function onActiveTimeUpdate() {
     const v = getActiveVideo();
     if (!v) return;
-    const cur = v.currentTime;
-    const dur = v.duration || 0;
-
-    if (dur > 0) {
-        const percent = (cur / dur) * 100;
-        if (timelineProgress) timelineProgress.style.width = percent + '%';
-        if (timelineThumb) timelineThumb.style.left = percent + '%';
-    }
+    const cur = v.currentTime; const dur = v.duration || 0;
+    if (dur > 0) { const percent = (cur / dur) * 100; if (timelineProgress) timelineProgress.style.width = percent + '%'; if (timelineThumb) timelineThumb.style.left = percent + '%'; }
     if (currentTimeEl) currentTimeEl.textContent = formatTime(cur);
-
     if (!isInsertPlaying) {
-        if (sceneChoiceState.pauseAt != null
-            && !sceneChoiceState.triggered
-            && !sceneChoiceState.resolved
-            && lastTime < sceneChoiceState.pauseAt
-            && cur >= sceneChoiceState.pauseAt) {
-            triggerChoicePause();
-        }
+        if (sceneChoiceState.pauseAt != null && !sceneChoiceState.triggered && !sceneChoiceState.resolved && lastTime < sceneChoiceState.pauseAt && cur >= sceneChoiceState.pauseAt) triggerChoicePause();
         checkSkipButton(cur, dur);
         lastTime = cur;
     }
 }
-
-function onActiveLoadedMetadata() {
-    const v = getActiveVideo();
-    if (v && durationEl) durationEl.textContent = formatTime(v.duration);
-}
-
-function onActiveProgress() {
-    const v = getActiveVideo();
-    if (!v) return;
-    if (v.buffered.length > 0 && v.duration && timelineBuffered) {
-        const bufferedEnd = v.buffered.end(v.buffered.length - 1);
-        timelineBuffered.style.width = ((bufferedEnd / v.duration) * 100) + '%';
-    }
-}
-
+function onActiveLoadedMetadata() { const v = getActiveVideo(); if (v && durationEl) durationEl.textContent = formatTime(v.duration); }
+function onActiveProgress() { const v = getActiveVideo(); if (!v) return; if (v.buffered.length > 0 && v.duration && timelineBuffered) { const bufferedEnd = v.buffered.end(v.buffered.length - 1); timelineBuffered.style.width = ((bufferedEnd / v.duration) * 100) + '%'; } }
 function onActivePlay() { if (playPauseBtn) playPauseBtn.classList.add('playing'); showControls(); }
 function onActivePause() { if (playPauseBtn) playPauseBtn.classList.remove('playing'); showControls(); }
-
 function showBuffering() { if (bufferingSpinner) bufferingSpinner.classList.add('visible'); }
 function hideBuffering() { if (bufferingSpinner) bufferingSpinner.classList.remove('visible'); }
 
@@ -800,27 +818,15 @@ function bindVideoEvents(v) {
     v.addEventListener('timeupdate', onActiveTimeUpdate);
     v.addEventListener('loadedmetadata', onActiveLoadedMetadata);
     v.addEventListener('progress', onActiveProgress);
-    v.addEventListener('play', onActivePlay);
-    v.addEventListener('pause', onActivePause);
-    v.addEventListener('waiting', showBuffering);
-    v.addEventListener('stalled', showBuffering);
-    v.addEventListener('playing', hideBuffering);
-    v.addEventListener('canplay', hideBuffering);
-    v.addEventListener('seeked', hideBuffering);
-    v.addEventListener('error', hideBuffering);
+    v.addEventListener('play', onActivePlay); v.addEventListener('pause', onActivePause);
+    v.addEventListener('waiting', showBuffering); v.addEventListener('stalled', showBuffering);
+    v.addEventListener('playing', hideBuffering); v.addEventListener('canplay', hideBuffering); v.addEventListener('seeked', hideBuffering); v.addEventListener('error', hideBuffering);
 }
 
-bindVideoEvents(video);
-bindVideoEvents(insertPlayer);
+bindVideoEvents(video); bindVideoEvents(insertPlayer);
 if (video) video.addEventListener('ended', onSceneEnded);
 
-function togglePlay() {
-    if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return;
-    const v = getActiveVideo();
-    if (!v) return;
-    if (v.paused) safePlay(v);
-    else v.pause();
-}
+function togglePlay() { if (sceneChoiceState.triggered && !sceneChoiceState.resolved) return; const v = getActiveVideo(); if (!v) return; if (v.paused) safePlay(v); else v.pause(); }
 if (playPauseBtn) playPauseBtn.addEventListener('click', togglePlay);
 if (video) video.addEventListener('click', togglePlay);
 if (insertPlayer) insertPlayer.addEventListener('click', togglePlay);
@@ -830,41 +836,19 @@ function seekFromEvent(e) {
     if (!timeline) return;
     const rect = timeline.getBoundingClientRect();
     const clientX = e.clientX ?? (e.touches?.[0]?.clientX ?? 0);
-    let x = clientX - rect.left;
-    x = Math.max(0, Math.min(x, rect.width));
-    const v = getActiveVideo();
-    if (v && v.duration) v.currentTime = (x / rect.width) * v.duration;
+    let x = clientX - rect.left; x = Math.max(0, Math.min(x, rect.width));
+    const v = getActiveVideo(); if (v && v.duration) v.currentTime = (x / rect.width) * v.duration;
 }
-if (timeline) {
-    timeline.addEventListener('mousedown', (e) => { isDraggingTimeline = true; seekFromEvent(e); });
-    timeline.addEventListener('touchstart', (e) => { isDraggingTimeline = true; seekFromEvent(e); }, { passive: true });
-}
+if (timeline) { timeline.addEventListener('mousedown', (e) => { isDraggingTimeline = true; seekFromEvent(e); }); timeline.addEventListener('touchstart', (e) => { isDraggingTimeline = true; seekFromEvent(e); }, { passive: true }); }
 document.addEventListener('mousemove', (e) => { if (isDraggingTimeline) seekFromEvent(e); });
 document.addEventListener('mouseup', () => { isDraggingTimeline = false; });
 document.addEventListener('touchmove', (e) => { if (isDraggingTimeline) seekFromEvent(e); }, { passive: true });
 document.addEventListener('touchend', () => { isDraggingTimeline = false; });
 
-if (volumeSlider) {
-    volumeSlider.addEventListener('input', (e) => {
-        const v = getActiveVideo();
-        if (!v) return;
-        v.volume = parseFloat(e.target.value);
-        v.muted = v.volume === 0;
-        updateVolumeIcon();
-    });
-}
-if (volumeBtn) {
-    volumeBtn.addEventListener('click', () => {
-        const v = getActiveVideo();
-        if (!v) return;
-        v.muted = !v.muted;
-        updateVolumeIcon();
-    });
-}
+if (volumeSlider) { volumeSlider.addEventListener('input', (e) => { const v = getActiveVideo(); if (!v) return; v.volume = parseFloat(e.target.value); v.muted = v.volume === 0; updateVolumeIcon(); }); }
+if (volumeBtn) { volumeBtn.addEventListener('click', () => { const v = getActiveVideo(); if (!v) return; v.muted = !v.muted; updateVolumeIcon(); }); }
 function updateVolumeIcon() {
-    if (!volumeBtn) return;
-    const v = getActiveVideo();
-    if (!v) return;
+    if (!volumeBtn) return; const v = getActiveVideo(); if (!v) return;
     volumeBtn.classList.remove('volume-high', 'volume-low', 'volume-mute');
     if (v.muted || v.volume === 0) volumeBtn.classList.add('volume-mute');
     else if (v.volume < 0.5) volumeBtn.classList.add('volume-low');
@@ -875,96 +859,34 @@ updateVolumeIcon();
 if (fullscreenBtn) {
     fullscreenBtn.addEventListener('click', () => {
         const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-        if (isIOS) {
-            player.classList.toggle('ios-immersive');
-            if (player.classList.contains('ios-immersive')) setTimeout(() => window.scrollTo(0, 1), 50);
-            return;
-        }
-        if (video && video.webkitEnterFullscreen && !document.fullscreenEnabled) {
-            video.webkitEnterFullscreen();
-            return;
-        }
-        if (!document.fullscreenElement) {
-            if (player) player.requestFullscreen().catch(err => console.log(err));
-        } else {
-            document.exitFullscreen();
-        }
+        if (isIOS) { player.classList.toggle('ios-immersive'); if (player.classList.contains('ios-immersive')) setTimeout(() => window.scrollTo(0, 1), 50); return; }
+        if (video && video.webkitEnterFullscreen && !document.fullscreenEnabled) { video.webkitEnterFullscreen(); return; }
+        if (!document.fullscreenElement) { if (player) player.requestFullscreen().catch(err => console.log(err)); } else { document.exitFullscreen(); }
     });
 }
 
 function showControls() {
     if (!controls || !player) return;
-    controls.classList.add('visible');
-    player.classList.add('show-controls');
+    controls.classList.add('visible'); player.classList.add('show-controls');
     clearTimeout(hideControlsTimeout);
-    const v = getActiveVideo();
-    if (!v) return;
+    const v = getActiveVideo(); if (!v) return;
     const keepVisible = sceneChoiceState.triggered && !sceneChoiceState.resolved;
     if (!v.paused || keepVisible) {
-        if (!keepVisible) {
-            hideControlsTimeout = setTimeout(() => {
-                controls.classList.remove('visible');
-                player.classList.remove('show-controls');
-            }, 3000);
-        }
+        if (!keepVisible) { hideControlsTimeout = setTimeout(() => { controls.classList.remove('visible'); player.classList.remove('show-controls'); }, 3000); }
     }
 }
-if (player) {
-    player.addEventListener('mousemove', showControls);
-    player.addEventListener('mouseleave', () => {
-        const keepVisible = sceneChoiceState.triggered && !sceneChoiceState.resolved;
-        if (keepVisible) return;
-        const v = getActiveVideo();
-        if (v && !v.paused) {
-            if (controls) controls.classList.remove('visible');
-            if (player) player.classList.remove('show-controls');
-        }
-    });
-}
+if (player) { player.addEventListener('mousemove', showControls); player.addEventListener('mouseleave', () => { const keepVisible = sceneChoiceState.triggered && !sceneChoiceState.resolved; if (keepVisible) return; const v = getActiveVideo(); if (v && !v.paused) { if (controls) controls.classList.remove('visible'); if (player) player.classList.remove('show-controls'); } }); }
 
-// ============================================================
-//  ОБРАБОТЧИКИ КНОПКИ И ПОПАПА СЕРИЙ
-// ============================================================
-if (episodesBtn) {
-    episodesBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (episodesPopup) episodesPopup.classList.toggle('hidden');
-        showControls();
-    });
-}
-if (popupClose) {
-    popupClose.addEventListener('click', () => {
-        if (episodesPopup) episodesPopup.classList.add('hidden');
-    });
-}
+if (episodesBtn) { episodesBtn.addEventListener('click', (e) => { e.stopPropagation(); if (episodesPopup) episodesPopup.classList.toggle('hidden'); showControls(); }); }
+if (popupClose) { popupClose.addEventListener('click', () => { if (episodesPopup) episodesPopup.classList.add('hidden'); }); }
 document.addEventListener('click', (e) => {
-    if (episodesPopup && !episodesPopup.classList.contains('hidden') &&
-        !episodesPopup.contains(e.target) &&
-        episodesBtn && !episodesBtn.contains(e.target)) {
-        episodesPopup.classList.add('hidden');
-    }
+    if (episodesPopup && !episodesPopup.classList.contains('hidden') && !episodesPopup.contains(e.target) && episodesBtn && !episodesBtn.contains(e.target)) episodesPopup.classList.add('hidden');
 });
 
-if (backHomeBtn) {
-    backHomeBtn.addEventListener('click', () => {
-        if (document.fullscreenElement) document.exitFullscreen().finally(() => { window.location.href = '/'; });
-        else window.location.href = '/';
-    });
-}
-if (restartProgressBtn) {
-    restartProgressBtn.addEventListener('click', () => {
-        if (!confirm('Начать сериал заново? Весь прогресс будет сброшен.')) return;
-        clearProgress();
-        if (episodesList.length > 0) loadEpisode(episodesList[0].id, null);
-    });
-}
+if (backHomeBtn) { backHomeBtn.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen().finally(() => { window.location.href = '/'; }); else window.location.href = '/'; }); }
+if (restartProgressBtn) { restartProgressBtn.addEventListener('click', () => { if (!confirm('Начать сериал заново? Весь прогресс будет сброшен.')) return; clearProgress(); if (episodesList.length > 0) loadEpisode(episodesList[0].id, null); }); }
 const restartBtn = document.getElementById('restartBtn');
-if (restartBtn) {
-    restartBtn.addEventListener('click', () => {
-        clearProgress();
-        if (episodesList.length > 0) loadEpisode(episodesList[0].id, null);
-    });
-}
+if (restartBtn) { restartBtn.addEventListener('click', () => { clearProgress(); if (episodesList.length > 0) loadEpisode(episodesList[0].id, null); }); }
 const backBtn = document.getElementById('backBtn');
 if (backBtn) backBtn.addEventListener('click', () => { window.location.href = '/'; });
 
@@ -978,9 +900,6 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// ============================================================
-//  СТАРТ
-// ============================================================
 (async () => {
     try {
         await loadSeries();
