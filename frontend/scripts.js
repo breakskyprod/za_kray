@@ -39,17 +39,13 @@ function showSharePopup({ url }) {
         <div class="share-popup">
             <button class="share-popup-close" aria-label="Закрыть">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/>
                 </svg>
             </button>
             <div class="share-popup-badge">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="18" cy="5" r="3"/>
-                    <circle cx="6" cy="12" r="3"/>
-                    <circle cx="18" cy="19" r="3"/>
-                    <line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/>
-                    <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/>
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/>
                 </svg>
             </div>
             <h3 class="share-popup-title">Поделиться</h3>
@@ -58,8 +54,7 @@ function showSharePopup({ url }) {
                 <input type="text" id="sharePopupInput" class="share-popup-input" value="${url}" readonly spellcheck="false">
                 <button class="share-popup-copy-inline" id="sharePopupCopy" aria-label="Скопировать">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2.5"/>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        <rect x="9" y="9" width="13" height="13" rx="2.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                     </svg>
                 </button>
             </div>
@@ -74,11 +69,7 @@ function showSharePopup({ url }) {
     input.addEventListener('click', () => input.select());
     const copyBtn = overlay.querySelector('#sharePopupCopy');
     copyBtn.addEventListener('click', async () => {
-        try {
-            await navigator.clipboard.writeText(url);
-        } catch (e) {
-            input.select(); document.execCommand('copy');
-        }
+        try { await navigator.clipboard.writeText(url); } catch (e) { input.select(); document.execCommand('copy'); }
         copyBtn.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
         setTimeout(close, 800);
     });
@@ -93,7 +84,6 @@ function initTrailer(src) {
     const soundBtn = document.getElementById('soundToggle');
     if (!video || !src) return;
 
-    // 🔑 muted и playsinline СНАЧАЛА
     video.muted = true;
     video.defaultMuted = true;
     video.playsInline = true;
@@ -103,21 +93,13 @@ function initTrailer(src) {
 
     video.src = src;
 
-    // Пытаемся запустить сразу и на canplay
     const tryPlay = () => {
         const p = video.play();
-        if (p && p.catch) {
-            p.catch(err => {
-                if (err.name !== 'AbortError') {
-                    console.warn('Автоплей трейлера:', err);
-                }
-            });
-        }
+        if (p && p.catch) p.catch(err => { if (err.name !== 'AbortError') console.warn('Автоплей:', err); });
     };
     tryPlay();
     video.addEventListener('loadeddata', tryPlay, { once: true });
     video.addEventListener('canplay', tryPlay, { once: true });
-    // Ещё раз на всякий случай
     setTimeout(tryPlay, 300);
 
     if (soundBtn) {
@@ -168,13 +150,9 @@ async function loadViewersCount() {
         if (!res.ok) return;
         const data = await res.json();
         if (data && typeof data.unique === 'number') {
-            // Форматируем: 938 500 → "938,5 тыс."
             const n = data.unique;
-            if (n >= 1000) {
-                el.textContent = (n / 1000).toFixed(1).replace('.', ',') + ' тыс.';
-            } else {
-                el.textContent = String(n);
-            }
+            if (n >= 1000) el.textContent = (n / 1000).toFixed(1).replace('.', ',') + ' тыс.';
+            else el.textContent = String(n);
         }
     } catch (e) {}
 }
@@ -192,8 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         try { localStorage.clear(); sessionStorage.clear(); } catch (e) {}
         if (viewerId) {
             fetch('/api/state/save', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ viewerId, state: {} })
             }).finally(() => { window.location.href = window.location.pathname; });
         } else {
@@ -207,7 +184,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!response.ok) throw new Error('Не удалось загрузить сериал');
         const series = await response.json();
 
-        // Заголовок, ценз, жанры, год
         const titleText = document.getElementById('heroTitleText');
         if (titleText) titleText.textContent = series.title || 'За край';
         const metaYear = document.getElementById('metaYear');
@@ -217,24 +193,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         const metaRating = document.getElementById('metaRating');
         if (metaRating) metaRating.textContent = series.age_rating || '18+';
 
-        // Описание
         const fullDesc = series.description || '';
         const shortDesc = fullDesc.length > 220 ? fullDesc.slice(0, 220).trim() + '…' : fullDesc;
         const shortEl = document.getElementById('shortDescription');
         if (shortEl) shortEl.textContent = shortDesc;
 
-        // Трейлер
-        if (series.trailer) {
-            initTrailer(series.trailer);
+        // Трейлер теперь просто берется из папки uploads, если это не полный URL
+        if (series.trailer && series.trailer.trim() !== '') {
+            const trailerUrl = series.trailer.startsWith('http') ? series.trailer : `/uploads/${series.trailer}`;
+            initTrailer(trailerUrl);
+        } else {
+            const wrap = document.getElementById('heroVideoWrap');
+            if (wrap) wrap.style.display = 'none';
+            const hero = document.getElementById('hero');
+            if (hero) hero.style.height = '70vh';
         }
 
-        // Инфо о фильме
         if (series.info) fillInfo(series.info);
-
-        // Счётчик зрителей
         loadViewersCount();
 
-        // Серии
         const episodes = series.episodes || [];
         const carousel = document.getElementById('episodesCarousel');
         carousel.innerHTML = '';
@@ -248,22 +225,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             episodes.forEach(ep => {
                 const card = document.createElement('div');
                 card.className = 'episode-card';
-                const cover = ep.cover && ep.cover.trim() !== ''
-                    ? `/uploads/${ep.cover}`
-                    : `/images/frame${ep.episode_number}.jpg`;
+                // Обложки тоже берем из uploads
+                const cover = ep.cover && ep.cover.trim() !== '' ? `/uploads/${ep.cover}` : `/images/frame${ep.episode_number}.jpg`;
                 card.style.backgroundImage = `url('${cover}'), linear-gradient(145deg, #1a1a3e, #0b0b1a)`;
                 card.innerHTML = `
                     <div class="ep-overlay"></div>
                     <span class="ep-number-badge">${ep.episode_number} серия</span>
                 `;
-                card.addEventListener('click', () => {
-                    window.location.href = `/player_v2.html?episodeId=${ep.id}`;
-                });
+                card.addEventListener('click', () => { window.location.href = `/player_v2.html?episodeId=${ep.id}`; });
                 carousel.appendChild(card);
             });
         }
 
-        // Кнопка «Смотреть» / «Продолжить»
         const watchBtn = document.getElementById('watchBtn');
         const watchBtnText = document.getElementById('watchBtnText');
         if (storyData && storyData.episodeId) {
@@ -276,12 +249,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.location.href = `/player_v2.html?episodeId=${data.episodeId}`;
                 return;
             }
-            if (episodes.length > 0) {
-                window.location.href = `/player_v2.html?episodeId=${episodes[0].id}`;
-            }
+            if (episodes.length > 0) window.location.href = `/player_v2.html?episodeId=${episodes[0].id}`;
         });
 
-        // Поделиться
         document.getElementById('shareBtn').addEventListener('click', async () => {
             const url = window.location.origin + '/';
             const title = series.title || 'За край';
@@ -289,13 +259,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const ua = navigator.userAgent || '';
             const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
             if (isMobile && navigator.share) {
-                try { await navigator.share({ title, text, url }); return; }
-                catch (e) { if (e.name === 'AbortError') return; }
+                try { await navigator.share({ title, text, url }); return; } catch (e) { if (e.name === 'AbortError') return; }
             }
             showSharePopup({ url });
         });
 
-        // Описание «Ещё»
         const descBody = document.getElementById('descBody');
         const toggleBtn = document.getElementById('descToggleBtn');
         let isExpanded = false;
