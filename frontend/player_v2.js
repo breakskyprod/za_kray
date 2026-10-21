@@ -1,13 +1,29 @@
 // ============================================================
-//  КОНСТАНТЫ
+//  КОНСТАНТЫ И ФИКС ГЕОМЕТРИИ
 // ============================================================
 const SKIP_BUTTON_DELAY = 10;
 const PRELOAD_DELAY = 5000;
 
-// КАЧЕСТВА ВИДЕО
 const QUALITY_LEVELS = [1080, 720, 480, 360];
 const QUALITY_KEY = 'video_quality';
 let currentQuality = loadQualityPreference();
+
+// ПРИНУДИТЕЛЬНЫЙ ГОРИЗОНТАЛЬНЫЙ РЕЖИМ
+function checkOrientation() {
+    const player = document.getElementById('player');
+    if (!player) return;
+    const isMobile = window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 768;
+    // Если это мобилка и экран вертикальный — применяем фейковый фуллскрин
+    if (isMobile && window.innerHeight > window.innerWidth) {
+        player.classList.add('force-landscape');
+    } else {
+        player.classList.remove('force-landscape');
+    }
+}
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 100));
+// Вызовем чуть позже после загрузки DOM, чтобы избежать дерганий
+setTimeout(checkOrientation, 50);
 
 function loadQualityPreference() {
     try {
@@ -39,72 +55,38 @@ function autoQuality() {
 function buildQualityChain(requested) {
     const chain = [];
     const startIdx = QUALITY_LEVELS.indexOf(requested);
-    if (startIdx === -1) {
-        return QUALITY_LEVELS.slice().concat(['base']);
-    }
-    for (let i = startIdx; i < QUALITY_LEVELS.length; i++) {
-        chain.push(QUALITY_LEVELS[i]);
-    }
+    if (startIdx === -1) return QUALITY_LEVELS.slice().concat(['base']);
+    for (let i = startIdx; i < QUALITY_LEVELS.length; i++) chain.push(QUALITY_LEVELS[i]);
     chain.push('base');
     return chain;
 }
 
 function getVideoUrl(baseName, quality) {
     if (!baseName) return '';
-    if (/^https?:\/\//i.test(baseName)) return baseName; // если внешняя ссылка
-    
-    if (quality === 'base') {
-        return `/uploads/${baseName}`;
-    }
+    if (/^https?:\/\//i.test(baseName)) return baseName;
+    if (quality === 'base') return `/uploads/${baseName}`;
     const stem = baseName.replace(/\.mp4$/i, '');
     return `/uploads/${stem}_${quality}.mp4`;
 }
 
 function updateQualityLabel() {
-    const el = document.getElementById('qualityLabel');
+    const el = document.getElementById('currentQualityText');
     if (!el) return;
-    if (currentQuality === 'auto') {
-        el.textContent = 'AUTO';
-    } else {
-        el.textContent = currentQuality + 'p';
-    }
+    if (currentQuality === 'auto') el.textContent = 'AUTO';
+    else el.textContent = currentQuality + 'p';
 }
 
 // ============================================================
-//  ФИКС ВЫСОТЫ ВЬЮПОРТА (iOS)
-// ============================================================
-function updateAppHeight() {
-    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    document.documentElement.style.setProperty('--app-height', h + 'px');
-}
-updateAppHeight();
-window.addEventListener('resize', updateAppHeight);
-window.addEventListener('orientationchange', () => setTimeout(updateAppHeight, 150));
-if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', updateAppHeight);
-    window.visualViewport.addEventListener('scroll', updateAppHeight);
-}
-
-// ============================================================
-//  БЕЗОПАСНЫЙ PLAY
+//  БЕЗОПАСНЫЙ PLAY И VIEWER ID
 // ============================================================
 function safePlay(el) {
     if (!el) return;
     try {
         const p = el.play();
-        if (p && typeof p.catch === 'function') {
-            p.catch(err => {
-                if (err && err.name !== 'AbortError') {
-                    console.warn('play() ошибка:', err);
-                }
-            });
-        }
+        if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch (e) {}
 }
 
-// ============================================================
-//  VIEWER ID
-// ============================================================
 function getViewerId() {
     try {
         let id = localStorage.getItem('viewer_id');
@@ -117,7 +99,7 @@ function getViewerId() {
 }
 
 // ============================================================
-//  STORY STATE
+//  STORY STATE И ПРОЧЕЕ
 // ============================================================
 const initialStoryState = {
     group_contact: false, max_signal: false, max_action: false, max_evidence: false, max_adult: false,
@@ -125,7 +107,6 @@ const initialStoryState = {
     timur_job: false, timur_paid: false, timur_repeat: false, timur_suspicion: false, timur_drug: 0, timur_adult: false,
     lena_alex: false, lena_views: false, lena_validation: false, lena_extrem: false, lena_evidence: false, lena_adult: false
 };
-
 let storyState = { ...initialStoryState };
 let playedInserts = [];
 let watchedEpisodes = [];
@@ -145,7 +126,7 @@ const sceneChoiceState = {
 const STORAGE_KEY = 'zaykrai_progress';
 
 // ============================================================
-//  ПРЕДЗАГРУЗКА СЛЕДУЮЩЕЙ СЦЕНЫ
+//  ПРЕДЗАГРУЗКА
 // ============================================================
 const preloadedUrls = new Set();
 
@@ -153,37 +134,27 @@ function shouldPreload() {
     const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     if (!conn) return true;
     const et = conn.effectiveType;
-    if (et === 'slow-2g' || et === '2g' || et === '3g') return false;
-    return true;
+    return !(et === 'slow-2g' || et === '2g' || et === '3g');
 }
 
 function preloadNextScene() {
     const scene = currentScene;
     if (!scene) return;
-
     let nextSceneId = scene.next || null;
-    if (!nextSceneId && scene.choices && scene.choices.length) {
-        const firstChoice = scene.choices[0];
-        nextSceneId = firstChoice.next || null;
-    }
+    if (!nextSceneId && scene.choices && scene.choices.length) nextSceneId = scene.choices[0].next || null;
     if (!nextSceneId) return;
 
     fetch(`/api/scene/${nextSceneId}`)
         .then(r => r.json())
         .then(nextScene => {
             if (!nextScene.video) return;
-            
-            // Берем первое доступное качество из цепочки
             const requestedQ = currentQuality === 'auto' ? autoQuality() : currentQuality;
             const chain = buildQualityChain(requestedQ);
             const url = getVideoUrl(nextScene.video, chain[0]);
-            
             if (preloadedUrls.has(url)) return;
             preloadedUrls.add(url);
-            console.log(`[preload] Фоновая загрузка: ${url}`);
             fetch(url, { cache: 'force-cache' }).catch(() => {});
-        })
-        .catch(() => {});
+        }).catch(() => {});
 }
 
 // ============================================================
@@ -196,31 +167,14 @@ function loadVideoWithFallback(baseName, qualitySetting, targetVideo) {
         let index = 0;
 
         function tryNext() {
-            if (index >= chain.length) {
-                console.warn('Не удалось загрузить ни одно качество для', baseName);
-                resolve(false);
-                return;
-            }
+            if (index >= chain.length) { resolve(false); return; }
             const q = chain[index++];
             const url = getVideoUrl(baseName, q);
-            console.log(`[quality] Загрузка: ${q} (${url})`);
-
             targetVideo.src = url;
             targetVideo.load();
 
-            const onError = () => {
-                targetVideo.removeEventListener('error', onError);
-                targetVideo.removeEventListener('canplay', onCanPlay);
-                console.warn(`Качество ${q} не найдено, пробуем ниже...`);
-                tryNext();
-            };
-
-            const onCanPlay = () => {
-                targetVideo.removeEventListener('error', onError);
-                targetVideo.removeEventListener('canplay', onCanPlay);
-                resolve(true);
-            };
-
+            const onError = () => { targetVideo.removeEventListener('error', onError); targetVideo.removeEventListener('canplay', onCanPlay); tryNext(); };
+            const onCanPlay = () => { targetVideo.removeEventListener('error', onError); targetVideo.removeEventListener('canplay', onCanPlay); resolve(true); };
             targetVideo.addEventListener('error', onError);
             targetVideo.addEventListener('canplay', onCanPlay, { once: true });
         }
@@ -229,7 +183,7 @@ function loadVideoWithFallback(baseName, qualitySetting, targetVideo) {
 }
 
 // ============================================================
-//  СОХРАНЕНИЕ / ЗАГРУЗКА ПРОГРЕССА
+//  СОХРАНЕНИЕ ПРОГРЕССА
 // ============================================================
 function saveProgress() {
     const data = { episodeId: currentEpisodeId, sceneId: currentSceneId, storyState, playedInserts, watchedEpisodes, savedAt: Date.now() };
@@ -270,12 +224,7 @@ async function loadStoryDataAsync() {
 function clearProgress() {
     try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
     const viewerId = getViewerId();
-    if (viewerId) {
-        fetch('/api/state/save', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ viewerId, state: {} })
-        }).catch(() => {});
-    }
+    if (viewerId) fetch('/api/state/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ viewerId, state: {} }) }).catch(() => {});
 }
 
 // ============================================================
@@ -340,7 +289,7 @@ function buildTree(tokens) {
 function applyEffects(effects) {
     if (!effects || typeof effects !== 'object') return;
     for (const key of Object.keys(effects)) {
-        if (!(key in storyState)) { console.warn('Неизвестный флаг:', key); continue; }
+        if (!(key in storyState)) continue;
         storyState[key] = effects[key];
     }
 }
@@ -378,13 +327,20 @@ const countdownRingEl = document.getElementById('countdownRing');
 const bufferingSpinner = document.getElementById('bufferingSpinner');
 const skipBtn = document.getElementById('skipBtn');
 const episodesBtn = document.getElementById('episodesBtn');
-const qualityBtn = document.getElementById('qualityBtn');
-const qualityPopup = document.getElementById('qualityPopup');
+
+// Настройки
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPopup = document.getElementById('settingsPopup');
+const settingsMain = document.getElementById('settingsMain');
+const settingsQuality = document.getElementById('settingsQuality');
+const settingsClose = document.getElementById('settingsClose');
+const qualityClose = document.getElementById('qualityClose');
+const settingsBack = document.getElementById('settingsBack');
+const openQualitySettings = document.getElementById('openQualitySettings');
 const qualityPopupList = document.getElementById('qualityPopupList');
 
 const params = new URLSearchParams(window.location.search);
 const episodeIdFromUrl = params.get('episodeId');
-const debugMode = params.get('debug') === '1';
 
 let hideControlsTimeout = null;
 let isDraggingTimeline = false;
@@ -402,7 +358,7 @@ function formatTime(seconds) {
 }
 
 // ============================================================
-//  ПОПАП КАЧЕСТВА
+//  ПОПАП НАСТРОЕК И КАЧЕСТВА
 // ============================================================
 function buildQualityPopup() {
     if (!qualityPopupList) return;
@@ -417,14 +373,10 @@ function buildQualityPopup() {
     items.forEach(it => {
         const div = document.createElement('div');
         div.className = 'quality-item' + (currentQuality === it.value ? ' active' : '');
-        div.dataset.value = it.value;
-        div.innerHTML = `
-            <span>${it.label}</span>
-            ${it.badge ? `<span class="q-badge">${it.badge}</span>` : ''}
-        `;
+        div.innerHTML = `<span>${it.label}</span>${it.badge ? `<span class="q-badge">${it.badge}</span>` : ''}`;
         div.addEventListener('click', () => {
             changeQuality(it.value);
-            qualityPopup.classList.add('hidden');
+            settingsPopup.classList.add('hidden');
         });
         qualityPopupList.appendChild(div);
     });
@@ -434,18 +386,14 @@ async function changeQuality(newQuality) {
     currentQuality = newQuality;
     saveQualityPreference(newQuality);
     updateQualityLabel();
-    buildQualityPopup();
 
     if (!currentScene || !currentScene.video) return;
-
     const curTime = video.currentTime;
     const wasPlaying = !video.paused && !sceneChoiceState.triggered;
 
     video.pause();
     showBuffering();
-
     const success = await loadVideoWithFallback(currentScene.video, currentQuality, video);
-    
     if (success) {
         video.currentTime = curTime;
         if (wasPlaying) safePlay(video);
@@ -453,25 +401,51 @@ async function changeQuality(newQuality) {
     hideBuffering();
 }
 
-if (qualityBtn && qualityPopup) {
-    qualityBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
+function openSettings(tab) {
+    if (!settingsPopup) return;
+    settingsPopup.classList.remove('hidden');
+    
+    if (tab === 'quality') {
+        settingsMain.classList.add('hidden');
+        settingsQuality.classList.remove('hidden');
         buildQualityPopup();
-        qualityPopup.classList.toggle('hidden');
-        showControls();
+    } else {
+        settingsQuality.classList.add('hidden');
+        settingsMain.classList.remove('hidden');
+    }
+    showControls();
+}
+
+if (settingsBtn) {
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openSettings('main');
     });
 }
+if (openQualitySettings) {
+    openQualitySettings.addEventListener('click', () => openSettings('quality'));
+}
+if (settingsBack) {
+    settingsBack.addEventListener('click', () => openSettings('main'));
+}
+if (settingsClose) {
+    settingsClose.addEventListener('click', () => settingsPopup.classList.add('hidden'));
+}
+if (qualityClose) {
+    qualityClose.addEventListener('click', () => settingsPopup.classList.add('hidden'));
+}
+
 document.addEventListener('click', (e) => {
-    if (qualityPopup && !qualityPopup.classList.contains('hidden') &&
-        !qualityPopup.contains(e.target) &&
-        qualityBtn && !qualityBtn.contains(e.target)) {
-        qualityPopup.classList.add('hidden');
+    if (settingsPopup && !settingsPopup.classList.contains('hidden') &&
+        !settingsPopup.contains(e.target) &&
+        settingsBtn && !settingsBtn.contains(e.target)) {
+        settingsPopup.classList.add('hidden');
     }
 });
 updateQualityLabel();
 
 // ============================================================
-//  ЗАГРУЗКА СЕРИАЛА
+//  ЗАГРУЗКА СЕРИАЛА И СЦЕН
 // ============================================================
 async function loadSeries() {
     const res = await fetch('/api/series');
@@ -482,9 +456,6 @@ async function loadSeries() {
     renderEpisodesList();
 }
 
-// ============================================================
-//  РЕНДЕР СПИСКА СЕРИЙ
-// ============================================================
 function renderEpisodesList() {
     if (!popupList) return;
     popupList.innerHTML = '';
@@ -494,7 +465,6 @@ function renderEpisodesList() {
         const cover = ep.cover && ep.cover.trim() !== '' ? `/uploads/${ep.cover}` : `/images/frame${ep.episode_number}.jpg`;
         item.style.backgroundImage = `url('${cover}')`;
         item.innerHTML = `<span class="ep-item-badge">Серия ${ep.episode_number}</span>`;
-
         item.addEventListener('click', () => {
             loadEpisode(ep.id, null);
             episodesPopup.classList.add('hidden');
@@ -521,17 +491,12 @@ async function loadEpisode(epId, sceneIdToLoad = null) {
         let targetScene = null;
         if (sceneIdToLoad) targetScene = currentEpisodeScenes.find(s => s.id === sceneIdToLoad);
         if (!targetScene) targetScene = currentEpisodeScenes.find(s => s.type === 'start') || currentEpisodeScenes[0];
-        
         if (!targetScene) { alert('В этой серии нет сцен'); return; }
         await loadScene(targetScene.id);
 
-        fetch('/api/stats/view', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ viewerId: getViewerId(), type: 'start' })
-        }).catch(() => {});
+        fetch('/api/stats/view', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ viewerId: getViewerId(), type: 'start' }) }).catch(() => {});
     } catch (err) {
         console.error(err);
-        alert('Ошибка загрузки серии');
     }
 }
 
@@ -559,9 +524,6 @@ function computeChoicePauseAt(scene) {
     return Math.min(...starts);
 }
 
-// ============================================================
-//  МУЗЫКА
-// ============================================================
 function startChoiceAmbient() {
     if (!choiceAmbient) return;
     if (!choiceAmbient.src) choiceAmbient.src = '/uploads/choice_ambient.mp3';
@@ -569,23 +531,18 @@ function startChoiceAmbient() {
     try { choiceAmbient.currentTime = 0; } catch (e) {}
     safePlay(choiceAmbient);
 }
-
 function stopChoiceAmbient() {
     if (!choiceAmbient) return;
     try { choiceAmbient.pause(); choiceAmbient.currentTime = 0; } catch (e) {}
 }
 
-// ============================================================
-//  СЛЕДУЮЩАЯ СЕРИЯ
-// ============================================================
 function showSkipButton() { if (skipBtn && !skipButtonVisible) { skipButtonVisible = true; skipBtn.classList.remove('hidden'); } }
 function hideSkipButton() { if (skipBtn && skipButtonVisible) { skipButtonVisible = false; skipBtn.classList.add('hidden'); } }
 function checkSkipButton(cur, dur) {
     if (!currentScene || currentScene.type !== 'final') { hideSkipButton(); return; }
     if (!dur || dur <= 0) return;
-    const remaining = dur - cur;
-    if (remaining <= SKIP_BUTTON_DELAY && remaining > 0) showSkipButton();
-    else if (remaining <= 0) hideSkipButton();
+    if (dur - cur <= SKIP_BUTTON_DELAY && dur - cur > 0) showSkipButton();
+    else if (dur - cur <= 0) hideSkipButton();
 }
 function goToNextEpisode() {
     const idx = episodesList.findIndex(e => e.id == currentEpisodeId);
@@ -593,13 +550,8 @@ function goToNextEpisode() {
     if (nextEp) { isAutoAdvancing = true; loadEpisode(nextEp.id, null); }
     else { endMessage.classList.remove('hidden'); clearProgress(); }
 }
-if (skipBtn) {
-    skipBtn.addEventListener('click', (e) => { e.stopPropagation(); hideSkipButton(); goToNextEpisode(); });
-}
+if (skipBtn) skipBtn.addEventListener('click', (e) => { e.stopPropagation(); hideSkipButton(); goToNextEpisode(); });
 
-// ============================================================
-//  ЗАГРУЗКА СЦЕНЫ
-// ============================================================
 async function loadScene(sceneId) {
     try {
         resetChoiceState();
@@ -632,10 +584,7 @@ async function loadScene(sceneId) {
         if (conditionalOverlaysEl) conditionalOverlaysEl.innerHTML = '';
         lastTime = 0;
         saveProgress();
-
-        if (shouldPreload()) {
-            setTimeout(() => preloadNextScene(), PRELOAD_DELAY);
-        }
+        if (shouldPreload()) setTimeout(() => preloadNextScene(), PRELOAD_DELAY);
     } catch (err) {
         console.error(err);
     }
@@ -645,7 +594,6 @@ function buildChoiceAreas(scene) {
     if (!overlay) return;
     overlay.innerHTML = '';
     if (!scene.choices) return;
-
     scene.choices.forEach(choice => {
         const area = choice.area;
         if (!area) return;
@@ -654,15 +602,10 @@ function buildChoiceAreas(scene) {
         div.style.left = area.x + '%'; div.style.top = area.y + '%';
         div.style.width = area.width + '%'; div.style.height = area.height + '%';
         div.style.display = 'none';
-        div.dataset.choiceId = choice.id;
         const label = document.createElement('div');
         label.className = 'label'; label.textContent = choice.label || '';
         div.appendChild(label);
-        div.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (sceneChoiceState.resolved) return;
-            handleChoice(choice);
-        });
+        div.addEventListener('click', (e) => { e.stopPropagation(); if (!sceneChoiceState.resolved) handleChoice(choice); });
         overlay.appendChild(div);
     });
 }
@@ -756,13 +699,7 @@ function onSceneEnded() {
 function playInsert(videoFile) {
     return new Promise((resolve) => {
         if (!insertPlayer) { resolve(); return; }
-        
-        // Для вставок тоже применяем логику качества
-        const requestedQ = currentQuality === 'auto' ? autoQuality() : currentQuality;
-        const chain = buildQualityChain(requestedQ);
-        // Для простоты берем базовый файл, если вставка не тяжелая, или первое качество
-        const url = getVideoUrl(videoFile, chain[0]);
-        
+        const url = getVideoUrl(videoFile, currentQuality === 'auto' ? autoQuality() : currentQuality);
         insertPlayer.src = url;
         insertPlayer.classList.add('active');
         insertPlayer.currentTime = 0;
@@ -784,7 +721,7 @@ function playInsert(videoFile) {
             isInsertPlaying = false; if (playPauseBtn) playPauseBtn.classList.remove('playing');
             resolve();
         };
-        const onError = () => { console.warn('Вставка не загрузилась, пропускаем:', url); finish(); };
+        const onError = () => { finish(); };
         insertPlayer.addEventListener('ended', finish); insertPlayer.addEventListener('error', onError);
         insertPlayer.play().catch(() => { insertPlayer.muted = true; insertPlayer.play().catch(() => onError()); });
         setTimeout(() => { if (!resolved && insertPlayer.readyState < 2) finish(); }, 5000);
@@ -792,7 +729,7 @@ function playInsert(videoFile) {
 }
 
 // ============================================================
-//  UI И ИНТЕРФЕЙС
+//  UI
 // ============================================================
 function onActiveTimeUpdate() {
     const v = getActiveVideo();
@@ -815,14 +752,11 @@ function hideBuffering() { if (bufferingSpinner) bufferingSpinner.classList.remo
 
 function bindVideoEvents(v) {
     if (!v) return;
-    v.addEventListener('timeupdate', onActiveTimeUpdate);
-    v.addEventListener('loadedmetadata', onActiveLoadedMetadata);
-    v.addEventListener('progress', onActiveProgress);
+    v.addEventListener('timeupdate', onActiveTimeUpdate); v.addEventListener('loadedmetadata', onActiveLoadedMetadata); v.addEventListener('progress', onActiveProgress);
     v.addEventListener('play', onActivePlay); v.addEventListener('pause', onActivePause);
     v.addEventListener('waiting', showBuffering); v.addEventListener('stalled', showBuffering);
     v.addEventListener('playing', hideBuffering); v.addEventListener('canplay', hideBuffering); v.addEventListener('seeked', hideBuffering); v.addEventListener('error', hideBuffering);
 }
-
 bindVideoEvents(video); bindVideoEvents(insertPlayer);
 if (video) video.addEventListener('ended', onSceneEnded);
 
@@ -884,7 +818,7 @@ document.addEventListener('click', (e) => {
 });
 
 if (backHomeBtn) { backHomeBtn.addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen().finally(() => { window.location.href = '/'; }); else window.location.href = '/'; }); }
-if (restartProgressBtn) { restartProgressBtn.addEventListener('click', () => { if (!confirm('Начать сериал заново? Весь прогресс будет сброшен.')) return; clearProgress(); if (episodesList.length > 0) loadEpisode(episodesList[0].id, null); }); }
+if (restartProgressBtn) { restartProgressBtn.addEventListener('click', () => { if (!confirm('Начать сериал заново?')) return; clearProgress(); if (episodesList.length > 0) loadEpisode(episodesList[0].id, null); }); }
 const restartBtn = document.getElementById('restartBtn');
 if (restartBtn) { restartBtn.addEventListener('click', () => { clearProgress(); if (episodesList.length > 0) loadEpisode(episodesList[0].id, null); }); }
 const backBtn = document.getElementById('backBtn');
