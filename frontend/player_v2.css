@@ -18,10 +18,13 @@ html, body {
 }
 .player.show-controls { cursor: default; }
 
-.player.ios-immersive {
-    position: fixed; top: 0; left: 0;
-    width: 100vw; height: 100vh; height: 100dvh;
-    z-index: 99999; background: #000;
+/* ПРИНУДИТЕЛЬНЫЙ ГОРИЗОНТАЛЬНЫЙ РЕЖИМ */
+.player.force-landscape {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 100vh; height: 100vw;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center;
 }
 
 video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
@@ -183,15 +186,6 @@ video { width: 100%; height: 100%; display: block; object-fit: contain; backgrou
 #volumeSlider::-moz-range-thumb { width: 14px; height: 14px; background: var(--accent-1); border-radius: 50%; cursor: pointer; border: none; }
 .spacer { flex: 1; }
 
-/* ===== Кнопка качества ===== */
-.quality-btn { min-width: 48px !important; padding: 6px 10px !important; }
-.quality-label {
-    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; color: #fff;
-    padding: 3px 8px; border-radius: 6px; background: rgba(74, 158, 255, 0.2);
-    border: 1px solid rgba(74, 158, 255, 0.4); line-height: 1;
-}
-.quality-btn:hover .quality-label { background: rgba(74, 158, 255, 0.35); border-color: var(--accent-1); }
-
 /* ===== Окно выбора серий ===== */
 .episodes-popup {
     position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%);
@@ -203,10 +197,10 @@ video { width: 100%; height: 100%; display: block; object-fit: contain; backgrou
 .episodes-popup.hidden { display: none; }
 @keyframes popupFade { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .popup-header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-.popup-header h3 { font-size: 1rem; font-weight: 500; color: #eaeef7; }
-.popup-close { background: transparent; border: none; color: #fff; cursor: pointer; opacity: 0.7; transition: 0.2s; padding: 4px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
-.popup-close .icon { width: 16px; height: 16px; }
-.popup-close:hover { opacity: 1; color: var(--accent-1); background: rgba(255, 255, 255, 0.08); }
+.popup-header h3 { font-size: 1rem; font-weight: 500; color: #eaeef7; flex: 1; text-align: center; }
+.popup-close, .popup-back { background: transparent; border: none; color: #fff; cursor: pointer; opacity: 0.7; transition: 0.2s; padding: 4px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; }
+.popup-close .icon, .popup-back .icon { width: 20px; height: 20px; }
+.popup-close:hover, .popup-back:hover { opacity: 1; color: var(--accent-1); background: rgba(255, 255, 255, 0.08); }
 
 .popup-list { display: flex; flex-direction: row; gap: 12px; overflow-x: auto; padding: 16px; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.2) transparent; }
 .popup-list::-webkit-scrollbar { height: 6px; }
@@ -226,24 +220,37 @@ video { width: 100%; height: 100%; display: block; object-fit: contain; backgrou
     padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; color: #fff;
 }
 
-/* ===== Окно выбора качества ===== */
-.quality-popup {
+/* ===== Окно настроек (Шестеренка) ===== */
+.settings-popup {
     position: absolute; bottom: 85px; right: calc(20px + env(safe-area-inset-right, 0px));
-    z-index: 30; background: rgba(15, 15, 30, 0.92); border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 14px; padding: 6px; min-width: 160px;
+    z-index: 30; width: 260px;
+    background: rgba(15, 15, 30, 0.92); border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px; overflow: hidden;
     backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8); animation: qualityFade 0.18s ease;
 }
-.quality-popup.hidden { display: none; }
-@keyframes qualityFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-.quality-popup-header { padding: 8px 12px 6px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6a7388; font-weight: 600; }
-.quality-popup-list { display: flex; flex-direction: column; }
+.settings-popup.hidden { display: none; }
+.settings-tab { display: flex; flex-direction: column; }
+.settings-tab.hidden { display: none; }
+
+.settings-list { display: flex; flex-direction: column; padding: 8px; }
+.settings-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 14px; border-radius: 8px; cursor: pointer; transition: 0.15s;
+    color: #eaeef7; font-size: 0.95rem;
+}
+.settings-item:hover:not(.disabled) { background: rgba(255, 255, 255, 0.08); }
+.settings-item.disabled { opacity: 0.5; cursor: default; }
+.settings-value { display: flex; align-items: center; gap: 6px; color: #9099ad; font-size: 0.85rem; }
+.settings-item:hover:not(.disabled) .settings-value { color: #fff; }
+
+.quality-popup-list { display: flex; flex-direction: column; padding: 8px; }
 .quality-item {
-    padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: 0.15s;
+    padding: 12px 14px; border-radius: 8px; cursor: pointer; transition: 0.15s;
     font-size: 0.9rem; color: #c9d1e0; display: flex; justify-content: space-between; align-items: center; gap: 12px;
 }
 .quality-item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
-.quality-item.active { background: rgba(74, 158, 255, 0.18); color: var(--accent-1); }
+.quality-item.active { color: var(--accent-1); }
 .quality-item.active::after { content: '✓'; font-weight: 700; color: var(--accent-1); }
 .quality-item .q-badge { font-size: 0.7rem; padding: 2px 8px; background: rgba(255, 255, 255, 0.08); border-radius: 10px; color: #9099ad; }
 
@@ -268,8 +275,6 @@ video { width: 100%; height: 100%; display: block; object-fit: contain; backgrou
     #volumeSlider { width: 55px; }
     .ctrl-btn { min-width: 30px; min-height: 30px; padding: 4px; }
     .ctrl-btn .icon { width: 18px; height: 18px; }
-    .quality-label { font-size: 0.65rem; padding: 2px 6px; }
-    .quality-btn { min-width: 42px !important; }
     .back-home-btn .back-text { display: none; }
     .back-home-btn { padding: 7px 10px; }
     .restart-btn .restart-text { display: none; }
@@ -289,5 +294,5 @@ video { width: 100%; height: 100%; display: block; object-fit: contain; backgrou
     .popup-list .ep-item { flex: 0 0 120px; height: 70px; }
     .popup-list .ep-item-badge { font-size: 0.7rem; padding: 3px 8px; }
     
-    .quality-popup { bottom: 75px; right: 16px; min-width: 130px; }
+    .settings-popup { bottom: 75px; right: 16px; width: 220px; }
 }
