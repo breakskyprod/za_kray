@@ -8,36 +8,93 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(bodyParser.json());
+// =============================================
+//  КОНФИГУРАЦИЯ И ПРОВЕРКА ОКРУЖЕНИЯ
+// =============================================
+// STATS_KEY обязателен. Без него приватная статистика была бы
+// защищена предсказуемым дефолтом — поэтому падаем на старте.
+const STATS_KEY = process.env.STATS_KEY;
+if (!STATS_KEY || STATS_KEY.length < 16) {
+    console.error('❌ Переменная окружения STATS_KEY не задана или слишком короткая (нужно >= 16 символов).');
+    console.error('   Создайте .env на основе .env.example и задайте надёжный ключ.');
+    process.exit(1);
+}
+
+// Разрешённые источники для CORS. Список доменов через запятую в ALLOWED_ORIGINS.
+// Фронтенд ходит по относительным путям (один домен), поэтому для самого сайта
+// CORS не требуется — этот список нужен только если API дёргают извне.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Запросы без Origin (тот же домен, curl, мобильные вебвью) — разрешаем.
+        if (!origin) return callback(null, true);
+        if (ALLOWED_ORIGINS.length === 0) return callback(null, true); // dev-режим
+        if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+        return callback(new Error('CORS: источник не разрешён'));
+    }
+};
+app.use(cors(corsOptions));
+app.use(bodyParser.json({ limit: '256kb' })); // прогресс зрителя — маленький JSON
 
 // =============================================
 //  СТАТИКА (Фронтенд и Видео)
 // =============================================
-// Раздаем фронтенд
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
-// Раздаем видео напрямую с сервера
+// В продакшене видео раздаёт Nginx напрямую (см. deploy/nginx.conf).
+// Этот обработчик — запасной вариант для локальной разработки.
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
     maxAge: '1y',
     immutable: true,
     setHeaders: (res) => {
-        res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Accept-Ranges', 'bytes');
     }
 }));
 
 // =============================================
-//  СЕРИАЛ (JSON)
+//  АТОМАРНАЯ ЗАПИСЬ + ОЧЕРЕДЬ (устранение гонки)
+// =============================================
+// Проблема: fs.writeFileSync на каждый запрос + read-modify-write приводит
+// к потере данных при одновременных запросах. Решение:
+//   1) все изменения к одному файлу выполняются последовательно (очередь промисов);
+//   2) запись атомарна: пишем во временный файл и делаем rename (на одной ФС это атомарно).
+
+function atomicWrite(filePath, text) {
+    const dir = path.dirname(filePath);
+    const tmp = path.join(dir, `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`);
+    fs.writeFileSync(tmp, text, 'utf8');
+    fs.renameSync(tmp, filePath);
+}
+
+// Очередь операций на каждый файл: гарантирует, что read→modify→write
+// по одному файлу не пересекаются между параллельными запросами.
+const fileQueues = new Map();
+function enqueue(filePath, task) {
+    const prev = fileQueues.get(filePath) || Promise.resolve();
+    const next = prev.then(task, task); // выполняем task даже если предыдущая упала
+    // чистим цепочку, но не ломаем её при ошибке
+    fileQueues.set(filePath, next.catch(() => {}));
+    return next;
+}
+
+// =============================================
+//  СЕРИАЛ (JSON) — кэшируется в памяти
 // =============================================
 const SERIES_FILE_NAME = process.env.SERIES_FILE || 'series_v2.json';
 const DATA_FILE = path.join(__dirname, 'data', SERIES_FILE_NAME);
 
+let seriesCache = null;
 function loadSeries() {
+    // Сериал меняется редко — читаем один раз и держим в памяти.
+    if (seriesCache) return seriesCache;
     const raw = fs.readFileSync(DATA_FILE, 'utf8');
-    return JSON.parse(raw);
+    seriesCache = JSON.parse(raw);
+    return seriesCache;
 }
-
 console.log(`📖 Сериал: ${SERIES_FILE_NAME}`);
 
 // =============================================
@@ -45,12 +102,10 @@ console.log(`📖 Сериал: ${SERIES_FILE_NAME}`);
 // =============================================
 const VIEWS_FILE = path.join(__dirname, 'data', 'views.json');
 const STATES_FILE = path.join(__dirname, 'data', 'states.json');
-const STATS_KEY = process.env.STATS_KEY || 'series_stats_key';
 
 function loadViews() {
     try {
-        const raw = fs.readFileSync(VIEWS_FILE, 'utf8');
-        const data = JSON.parse(raw);
+        const data = JSON.parse(fs.readFileSync(VIEWS_FILE, 'utf8'));
         return {
             total: data.total || 0,
             viewers: data.viewers || {},
@@ -61,46 +116,56 @@ function loadViews() {
     }
 }
 
-function saveViews(data) {
-    data.lastUpdated = new Date().toISOString();
-    fs.writeFileSync(VIEWS_FILE, JSON.stringify(data, null, 2), 'utf8');
-}
-
 function loadStates() {
     try {
         return JSON.parse(fs.readFileSync(STATES_FILE, 'utf8'));
-    } catch (e) { return {}; }
+    } catch (e) {
+        return {};
+    }
 }
 
-function saveStates(data) {
-    fs.writeFileSync(STATES_FILE, JSON.stringify(data, null, 2), 'utf8');
+// Валидация viewerId: строка, разумная длина, безопасные символы.
+function isValidViewerId(id) {
+    return typeof id === 'string' && id.length > 0 && id.length <= 128 && /^[\w-]+$/.test(id);
 }
 
-// API: Статистика
+// --- API: Статистика ---
 app.post('/api/stats/view', (req, res) => {
-    const { viewerId, type } = req.body;
+    const { viewerId, type } = req.body || {};
     if (type !== 'start') return res.json({ success: true, skipped: true });
-    try {
+
+    enqueue(VIEWS_FILE, () => {
         const views = loadViews();
         views.total = (views.total || 0) + 1;
-        if (viewerId && typeof viewerId === 'string' && viewerId.length > 0) {
-            if (!views.viewers[viewerId]) {
-                views.viewers[viewerId] = new Date().toISOString();
-            }
+        if (isValidViewerId(viewerId) && !views.viewers[viewerId]) {
+            views.viewers[viewerId] = new Date().toISOString();
         }
-        saveViews(views);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка сохранения статистики' });
-    }
+        views.lastUpdated = new Date().toISOString();
+        atomicWrite(VIEWS_FILE, JSON.stringify(views, null, 2));
+    })
+        .then(() => res.json({ success: true }))
+        .catch(() => res.status(500).json({ error: 'Ошибка сохранения статистики' }));
 });
 
+// Приватная статистика: ключ принимается через заголовок Authorization: Bearer <key>
+// (не попадает в логи URL). Поддержан и старый ?key= для обратной совместимости.
+function checkStatsKey(req) {
+    const auth = req.get('authorization') || '';
+    const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    const provided = bearer || req.query.key;
+    return provided === STATS_KEY;
+}
+
 app.get('/api/stats', (req, res) => {
-    if (req.query.key !== STATS_KEY) {
+    if (!checkStatsKey(req)) {
         return res.status(403).json({ error: 'Доступ запрещён' });
     }
     const views = loadViews();
-    res.json({ total: views.total, unique: Object.keys(views.viewers || {}).length, lastUpdated: views.lastUpdated });
+    res.json({
+        total: views.total,
+        unique: Object.keys(views.viewers || {}).length,
+        lastUpdated: views.lastUpdated
+    });
 });
 
 app.get('/api/stats/public', (req, res) => {
@@ -112,22 +177,30 @@ app.get('/api/stats/public', (req, res) => {
     }
 });
 
-// API: Прогресс зрителя
+// --- API: Прогресс зрителя ---
 app.post('/api/state/save', (req, res) => {
-    const { viewerId, state } = req.body;
-    if (!viewerId || !state) return res.status(400).json({ error: 'Неверные данные' });
-    try {
-        const states = loadStates();
-        if (Object.keys(state).length === 0) delete states[viewerId];
-        else states[viewerId] = { ...state, updatedAt: new Date().toISOString() };
-        saveStates(states);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: 'Ошибка сохранения' });
+    const { viewerId, state } = req.body || {};
+    if (!isValidViewerId(viewerId) || !state || typeof state !== 'object') {
+        return res.status(400).json({ error: 'Неверные данные' });
     }
+
+    enqueue(STATES_FILE, () => {
+        const states = loadStates();
+        if (Object.keys(state).length === 0) {
+            delete states[viewerId];
+        } else {
+            states[viewerId] = { ...state, updatedAt: new Date().toISOString() };
+        }
+        atomicWrite(STATES_FILE, JSON.stringify(states, null, 2));
+    })
+        .then(() => res.json({ success: true }))
+        .catch(() => res.status(500).json({ error: 'Ошибка сохранения' }));
 });
 
 app.get('/api/state/:viewerId', (req, res) => {
+    if (!isValidViewerId(req.params.viewerId)) {
+        return res.status(400).json({ error: 'Неверный идентификатор' });
+    }
     try {
         const states = loadStates();
         const state = states[req.params.viewerId];
@@ -189,4 +262,5 @@ app.get('/api/scene/:id', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
     console.log(`📁 Видео: ${path.join(__dirname, 'uploads')}`);
+    console.log(`🔐 CORS: ${ALLOWED_ORIGINS.length ? ALLOWED_ORIGINS.join(', ') : 'открыт (dev-режим)'}`);
 });
