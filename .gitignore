@@ -1,20 +1,27 @@
 # Зависимости
 node_modules/
+server/node_modules/
 
 # Переменные окружения
 .env
+server/.env
 
 # Логи
 *.log
+logs/
 
 # Мусор ОС
 .DS_Store
 Thumbs.db
 
-# Файлы Render (создаются на сервере, не должны попадать в git)
+# Данные, которые пишутся на сервере (не должны попадать в git)
 server/data/views.json
 server/data/states.json
 
-# Папка загрузок — оставляем пустой в git, но саму папку держим
+# Папка загрузок — держим пустой в git
 server/uploads/*
 !server/uploads/.gitkeep
+
+# Бэкапы
+backups/
+*.tar.gz
