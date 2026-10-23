@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "id": "zakray-series",
+      "type": "series",
+      "title": "За край",
+      "poster": "poster_zakray.jpg",
+      "locked": true,
+      "href": "/series.html",
+      "badge": "Сериал"
+    },
+    {
+      "id": "project-8c4348a9a0f08793",
+      "type": "project",
+      "title": "выгу выгу выгу",
+      "poster": "/uploads/covers/8c4348a9a0f08793.png?v=1792783542175",
+      "locked": false,
+      "href": "/player_v2.html?p=8c4348a9a0f08793",
+      "badge": ""
+    }
+  ]
+}

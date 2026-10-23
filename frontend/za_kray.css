@@ -1,0 +1,376 @@
+/* ============================================================
+   ЗА КРАЙ — освежённый слой поверх styles.css
+   Подключать ПОСЛЕ styles.css.
+   Палитра наследуется из плеера:
+     --accent-1 #4A9EFF, --accent-2 #A45CFF, фон #0b0b1a.
+   ============================================================ */
+
+:root {
+    --page-max: 1120px;   /* единый «коридор» контента */
+    --page-pad: 24px;     /* боковой отступ */
+    --poster-w: clamp(150px, 42vw, 240px);  /* ширина постера A4 */
+    --card-radius: 16px;
+    --ink: #eaeef7;
+    --ink-dim: #9aa3b8;
+}
+
+/* ------------------------------------------------------------
+   1. ВЫРАВНИВАНИЕ: hero-заголовок в один «коридор» с контентом
+   На десктопе левый край названия совпадает с «Смотреть»,
+   «Описание», «Серии». На мобильном не трогаем (там свой режим).
+   ------------------------------------------------------------ */
+@media (min-width: 769px) {
+    .hero-content {
+        left: calc(max((100vw - var(--page-max)) / 2, 0px) + var(--page-pad));
+        /* правая граница текста остаётся по макс. ширине блока */
+    }
+}
+
+/* Единый контейнер для main — та же математика, что у hero */
+.main-content {
+    max-width: var(--page-max);
+    padding-left: var(--page-pad);
+    padding-right: var(--page-pad);
+}
+
+/* ------------------------------------------------------------
+   2. ЕДИНЫЙ СТИЛЬ ЗАГОЛОВКОВ СЕКЦИЙ (освежение)
+   ------------------------------------------------------------ */
+.section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+.catalog-section { margin: 8px 0 52px; }
+
+.catalog-section h2,
+.description-section h2,
+.episodes-section h2,
+.info-section h2 {
+    position: relative;
+    font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--ink);
+    padding-left: 14px;
+}
+/* Акцентная «засечка» слева от заголовка */
+.catalog-section h2::before,
+.description-section h2::before,
+.episodes-section h2::before,
+.info-section h2::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 4px; height: 0.95em;
+    border-radius: 4px;
+    background: linear-gradient(180deg, var(--accent-1), var(--accent-2));
+}
+.section-head-hint {
+    font-size: 0.8rem;
+    color: var(--ink-dim);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+@media (max-width: 600px) { .section-head-hint { display: none; } }
+
+/* ------------------------------------------------------------
+   3. КАРУСЕЛЬ ПОСТЕРОВ (формат A4, адаптив)
+   Постеры экспортируются в 4x; соотношение сторон 210:297.
+   ------------------------------------------------------------ */
+.poster-rail {
+    display: flex;
+    gap: clamp(12px, 2vw, 20px);
+    overflow-x: auto;
+    padding: 4px 4px 18px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-1-soft) transparent;
+}
+.poster-rail::-webkit-scrollbar { height: 8px; }
+.poster-rail::-webkit-scrollbar-track { background: rgba(255,255,255,0.04); border-radius: 10px; }
+.poster-rail::-webkit-scrollbar-thumb { background: var(--accent-1-soft); border-radius: 10px; }
+.poster-rail::-webkit-scrollbar-thumb:hover { background: var(--accent-1); }
+
+.poster-card {
+    flex: 0 0 var(--poster-w);
+    width: var(--poster-w);
+    scroll-snap-align: start;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    cursor: pointer;
+    outline: none;
+}
+.poster-card:focus-visible .poster-card__media {
+    box-shadow: 0 0 0 3px var(--accent-1);
+}
+
+/* Сам постер: строго A4 */
+.poster-card__media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 210 / 297;            /* A4 портрет */
+    border-radius: var(--card-radius);
+    overflow: hidden;
+    background-color: #14142b;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    transition: transform 0.28s cubic-bezier(0.2,0.8,0.2,1),
+                box-shadow 0.28s ease, border-color 0.28s ease;
+}
+/* Fallback для старых браузеров без aspect-ratio */
+@supports not (aspect-ratio: 1) {
+    .poster-card__media { height: 0; padding-top: 141.4%; }
+}
+
+.poster-card:hover .poster-card__media {
+    transform: translateY(-6px);
+    border-color: var(--accent-1-soft);
+    box-shadow: 0 18px 44px rgba(74,158,255,0.22), 0 10px 26px rgba(0,0,0,0.55);
+}
+
+/* Затемнение снизу под подпись/бейджи */
+.poster-card__media::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(8,8,20,0.78) 0%, rgba(8,8,20,0) 42%);
+    pointer-events: none;
+}
+
+/* Бейдж типа контента / «Скоро» */
+.poster-card__badge {
+    position: absolute;
+    top: 10px; left: 10px;
+    z-index: 2;
+    padding: 5px 11px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #fff;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    box-shadow: 0 4px 14px rgba(74,158,255,0.4);
+}
+.poster-card__badge--soon {
+    background: rgba(10,10,24,0.78);
+    border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(8px);
+    box-shadow: none;
+}
+
+/* Подпись постера (название) */
+.poster-card__title {
+    position: absolute;
+    left: 12px; right: 12px; bottom: 12px;
+    z-index: 2;
+    font-size: clamp(0.92rem, 1.4vw, 1.05rem);
+    font-weight: 600;
+    line-height: 1.2;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+}
+
+/* ---- Заблокированный элемент (название заблюрено, «Скоро») ---- */
+.poster-card.is-locked { cursor: default; }
+.poster-card.is-locked .poster-card__media { filter: saturate(0.85); }
+.poster-card.is-locked:hover .poster-card__media { transform: none; }
+
+.poster-card__title.is-locked {
+    filter: blur(9px);
+    user-select: none;
+    -webkit-user-select: none;
+}
+/* Плашка «Скоро» по центру заблокированного постера */
+.poster-card__lock {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+.poster-card__lock span {
+    padding: 8px 18px;
+    border-radius: 24px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fff;
+    background: rgba(10,10,24,0.55);
+    border: 1px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* Скелетоны при загрузке */
+.poster-rail-skeleton {
+    flex: 0 0 var(--poster-w);
+    width: var(--poster-w);
+    aspect-ratio: 210 / 297;
+    border-radius: var(--card-radius);
+    background: linear-gradient(100deg, #14142b 30%, #1d1d40 50%, #14142b 70%);
+    background-size: 200% 100%;
+    animation: posterShimmer 1.3s infinite;
+}
+@keyframes posterShimmer { to { background-position: -200% 0; } }
+
+.poster-rail-empty { color: var(--ink-dim); padding: 24px 4px; }
+
+/* ============================================================
+   4. ПРЕЛОАДЕР — обновлённый
+   ============================================================ */
+.preloader {
+    background:
+        radial-gradient(1200px 600px at 50% 38%, #141433 0%, #0b0b1a 60%, #07070f 100%);
+    overflow: hidden;
+}
+
+/* мягкое свечение-ядро */
+.pl-glow {
+    position: absolute;
+    top: 38%; left: 50%;
+    width: 520px; height: 520px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(74,158,255,0.22), rgba(164,92,255,0.10) 45%, transparent 70%);
+    filter: blur(10px);
+    animation: plGlow 3.2s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes plGlow {
+    0%, 100% { opacity: 0.6; transform: translate(-50%,-50%) scale(1); }
+    50%      { opacity: 1;   transform: translate(-50%,-50%) scale(1.08); }
+}
+
+/* тонкая «плёночная» текстура */
+.pl-grain {
+    position: absolute; inset: 0;
+    opacity: 0.05;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.pl-core {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Знак: точка → линия → стрелка «за край» */
+.pl-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    height: 18px;
+    margin-bottom: 22px;
+    opacity: 0;
+    animation: plFade 0.6s ease 0.1s forwards;
+}
+.pl-mark-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent-1);
+    box-shadow: 0 0 14px var(--accent-1);
+}
+.pl-mark-line {
+    height: 2px; width: 0;
+    background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+    animation: plLine 1s cubic-bezier(0.3,0.8,0.2,1) 0.4s forwards;
+}
+.pl-mark-arrow {
+    width: 0; height: 0;
+    border-left: 9px solid var(--accent-2);
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    opacity: 0;
+    filter: drop-shadow(0 0 8px var(--accent-2));
+    animation: plFade 0.4s ease 1.3s forwards;
+}
+@keyframes plLine { to { width: 120px; } }
+
+/* Вордмарк */
+.pl-word {
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+}
+.pl-word-text {
+    display: inline-block;
+    font-size: clamp(2.6rem, 10vw, 5.2rem);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    line-height: 1.05;
+    background: linear-gradient(135deg, #cfe2ff 0%, var(--accent-1) 42%, var(--accent-2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    transform: translateY(115%);
+    animation: plRise 0.9s cubic-bezier(0.2,0.9,0.25,1) 0.5s forwards;
+}
+@keyframes plRise { to { transform: translateY(0); } }
+
+/* Пробегающий блик по вордмарку */
+.pl-word-sheen {
+    position: absolute;
+    top: 0; left: -60%;
+    width: 50%; height: 100%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.55), transparent);
+    transform: skewX(-18deg);
+    opacity: 0;
+    animation: plSheen 1.4s ease 1.5s forwards;
+}
+@keyframes plSheen {
+    0%   { left: -60%; opacity: 0; }
+    15%  { opacity: 0.9; }
+    100% { left: 130%; opacity: 0; }
+}
+
+.pl-sub {
+    margin-top: 14px;
+    font-size: 0.9rem;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    opacity: 0;
+    transform: translateY(8px);
+    animation: plFadeUp 0.8s ease 1.15s forwards;
+    padding-left: 0.42em; /* компенсация трекинга */
+}
+
+.pl-progress {
+    width: 220px; max-width: 60vw;
+    height: 2px;
+    margin: 30px auto 0;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    opacity: 0;
+    animation: plFade 0.6s ease 1.3s forwards;
+}
+.pl-progress-fill {
+    display: block;
+    height: 100%; width: 0;
+    background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+    box-shadow: 0 0 12px var(--accent-1-soft);
+    animation: plBar 1.7s cubic-bezier(0.4,0,0.2,1) 1.4s forwards;
+}
+@keyframes plBar { to { width: 100%; } }
+
+@keyframes plFade   { to { opacity: 1; } }
+@keyframes plFadeUp { to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 700px) {
+    .pl-progress { width: 170px; }
+    .pl-sub { font-size: 0.72rem; letter-spacing: 0.3em; }
+}
