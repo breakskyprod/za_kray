@@ -85,7 +85,7 @@ function runFfmpeg(input, out, height) {
         const tail = ['-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', out];
         if (codec === 'amf') {
             return [...common,
-                '-c:v', 'h264_amf', '-quality', 'speed',
+                '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23',
                 '-rc', 'cqp', '-qp_i', '23', '-qp_p', '23',
                 '-pix_fmt', 'yuv420p', ...tail];
         }
