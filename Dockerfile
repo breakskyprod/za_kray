@@ -11,9 +11,8 @@ COPY . .
 
 ENV NODE_ENV=production
 ENV FFPROBE_BIN=ffprobe
-WORKDIR /app/server
 
-# Перенаправляем data, uploads, clips на постоянный диск /var/data
+WORKDIR /app/server
 CMD sh -c "mkdir -p /var/data/data /var/data/uploads /var/data/clips && \
   for d in data uploads clips; do rm -rf /app/server/$d; ln -s /var/data/$d /app/server/$d; done && \
-  node server.js"
+  node app.js"
