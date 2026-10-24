@@ -1,0 +1,1213 @@
+{
+  "fragments": {
+    "67aef6a67c61005e": {
+      "id": "67aef6a67c61005e",
+      "title": "s01_perepiska",
+      "rawFile": "67aef6a67c61005e.mp4",
+      "duration": 53,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "480": "clips/67aef6a67c61005e_480.mp4",
+        "720": "clips/67aef6a67c61005e_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-23T20:30:48.514Z",
+      "updatedAt": "2026-10-23T20:30:57.831Z"
+    },
+    "4a2b03d6c7a49dcc": {
+      "id": "4a2b03d6c7a49dcc",
+      "title": "s02_sblijenie",
+      "rawFile": "4a2b03d6c7a49dcc.mp4",
+      "duration": 45,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "480": "clips/4a2b03d6c7a49dcc_480.mp4",
+        "720": "clips/4a2b03d6c7a49dcc_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-23T20:31:04.244Z",
+      "updatedAt": "2026-10-23T20:31:12.731Z"
+    },
+    "9e4a664618aecadf": {
+      "id": "9e4a664618aecadf",
+      "title": "s02_A",
+      "rawFile": "9e4a664618aecadf.mp4",
+      "duration": 12,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "480": "clips/9e4a664618aecadf_480.mp4",
+        "720": "clips/9e4a664618aecadf_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-23T20:31:13.022Z",
+      "updatedAt": "2026-10-23T20:31:15.805Z"
+    },
+    "07d3899da12f363b": {
+      "id": "07d3899da12f363b",
+      "title": "s02_B",
+      "rawFile": "07d3899da12f363b.mp4",
+      "duration": 20,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "480": "clips/07d3899da12f363b_480.mp4",
+        "720": "clips/07d3899da12f363b_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-23T20:31:17.302Z",
+      "updatedAt": "2026-10-23T20:31:21.505Z"
+    },
+    "d88bbdbd5eb8c476": {
+      "id": "d88bbdbd5eb8c476",
+      "title": "s02_NC",
+      "rawFile": "d88bbdbd5eb8c476.mp4",
+      "duration": 10,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "480": "clips/d88bbdbd5eb8c476_480.mp4",
+        "720": "clips/d88bbdbd5eb8c476_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-23T20:31:21.572Z",
+      "updatedAt": "2026-10-23T20:31:24.009Z"
+    },
+    "704da7b9926f73a3": {
+      "id": "704da7b9926f73a3",
+      "title": "s03_gruppa",
+      "rawFile": "704da7b9926f73a3.mp4",
+      "duration": 25.28,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "480": "clips/704da7b9926f73a3_480.mp4",
+        "720": "clips/704da7b9926f73a3_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-23T20:31:27.581Z",
+      "updatedAt": "2026-10-23T20:31:32.331Z"
+    },
+    "c847345a9cc451af": {
+      "id": "c847345a9cc451af",
+      "title": "s01_perepiska",
+      "rawFile": "c847345a9cc451af.mp4",
+      "duration": 53,
+      "status": "processing",
+      "error": null,
+      "published": false,
+      "outputs": {},
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:47:44.848Z",
+      "updatedAt": "2026-10-24T10:47:44.855Z"
+    },
+    "89e09ccd3243e654": {
+      "id": "89e09ccd3243e654",
+      "title": "s02_sblijenie",
+      "rawFile": "89e09ccd3243e654.mp4",
+      "duration": 45,
+      "status": "processing",
+      "error": null,
+      "published": false,
+      "outputs": {},
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:47:56.023Z",
+      "updatedAt": "2026-10-24T10:47:56.029Z"
+    },
+    "5594cc25ff5ba865": {
+      "id": "5594cc25ff5ba865",
+      "title": "s02_A",
+      "rawFile": "5594cc25ff5ba865.mp4",
+      "duration": 12,
+      "status": "processing",
+      "error": null,
+      "published": false,
+      "outputs": {},
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:48:48.944Z",
+      "updatedAt": "2026-10-24T10:48:48.950Z"
+    },
+    "9b2f3b8e6da58aa0": {
+      "id": "9b2f3b8e6da58aa0",
+      "title": "s02_B",
+      "rawFile": "9b2f3b8e6da58aa0.mp4",
+      "duration": 20,
+      "status": "processing",
+      "error": null,
+      "published": false,
+      "outputs": {},
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:48:55.283Z",
+      "updatedAt": "2026-10-24T10:48:55.290Z"
+    },
+    "ec7e934d293ab736": {
+      "id": "ec7e934d293ab736",
+      "title": "s02_NC",
+      "rawFile": "ec7e934d293ab736.mp4",
+      "duration": 10,
+      "status": "processing",
+      "error": null,
+      "published": false,
+      "outputs": {},
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:49:00.859Z",
+      "updatedAt": "2026-10-24T10:49:00.865Z"
+    },
+    "c473b8b3626b7eb4": {
+      "id": "c473b8b3626b7eb4",
+      "title": "s03_gruppa",
+      "rawFile": "c473b8b3626b7eb4.mp4",
+      "duration": 25.28,
+      "status": "processing",
+      "error": null,
+      "published": false,
+      "outputs": {},
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:49:17.789Z",
+      "updatedAt": "2026-10-24T10:49:17.797Z"
+    },
+    "ae54a8725c740150": {
+      "id": "ae54a8725c740150",
+      "title": "s01_perepiska",
+      "rawFile": "ae54a8725c740150.mp4",
+      "duration": 53,
+      "status": "processing",
+      "error": null,
+      "published": false,
+      "outputs": {},
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:51:13.719Z",
+      "updatedAt": "2026-10-24T10:51:13.731Z"
+    },
+    "2f25a6cac846f150": {
+      "id": "2f25a6cac846f150",
+      "title": "s01_perepiska",
+      "rawFile": "2f25a6cac846f150.mp4",
+      "duration": 53,
+      "status": "processing",
+      "error": null,
+      "published": false,
+      "outputs": {},
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:53:13.621Z",
+      "updatedAt": "2026-10-24T10:53:13.629Z"
+    },
+    "798d691ea94d10d4": {
+      "id": "798d691ea94d10d4",
+      "title": "s01_perepiska",
+      "rawFile": "798d691ea94d10d4.mp4",
+      "duration": 53,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/798d691ea94d10d4_360.mp4",
+        "480": "clips/798d691ea94d10d4_480.mp4",
+        "720": "clips/798d691ea94d10d4_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:56:01.722Z",
+      "updatedAt": "2026-10-24T10:56:14.574Z"
+    },
+    "3efad19bbe1ca7b0": {
+      "id": "3efad19bbe1ca7b0",
+      "title": "s02_sblijenie",
+      "rawFile": "3efad19bbe1ca7b0.mp4",
+      "duration": 45,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/3efad19bbe1ca7b0_360.mp4",
+        "480": "clips/3efad19bbe1ca7b0_480.mp4",
+        "720": "clips/3efad19bbe1ca7b0_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:56:41.132Z",
+      "updatedAt": "2026-10-24T10:56:53.910Z"
+    },
+    "b71602f91ab5bc28": {
+      "id": "b71602f91ab5bc28",
+      "title": "s02_A",
+      "rawFile": "b71602f91ab5bc28.mp4",
+      "duration": 12,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/b71602f91ab5bc28_360.mp4",
+        "480": "clips/b71602f91ab5bc28_480.mp4",
+        "720": "clips/b71602f91ab5bc28_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:57:48.439Z",
+      "updatedAt": "2026-10-24T10:57:53.469Z"
+    },
+    "1b2c04c0a3c59e0c": {
+      "id": "1b2c04c0a3c59e0c",
+      "title": "s02_B",
+      "rawFile": "1b2c04c0a3c59e0c.mp4",
+      "duration": 20,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/1b2c04c0a3c59e0c_360.mp4",
+        "480": "clips/1b2c04c0a3c59e0c_480.mp4",
+        "720": "clips/1b2c04c0a3c59e0c_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:58:00.006Z",
+      "updatedAt": "2026-10-24T10:58:07.477Z"
+    },
+    "27530510af9f67ac": {
+      "id": "27530510af9f67ac",
+      "title": "s02_NC",
+      "rawFile": "27530510af9f67ac.mp4",
+      "duration": 10,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/27530510af9f67ac_360.mp4",
+        "480": "clips/27530510af9f67ac_480.mp4",
+        "720": "clips/27530510af9f67ac_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:58:16.100Z",
+      "updatedAt": "2026-10-24T10:58:20.585Z"
+    },
+    "7e51637695bad2fc": {
+      "id": "7e51637695bad2fc",
+      "title": "s03_gruppa",
+      "rawFile": "7e51637695bad2fc.mp4",
+      "duration": 25.28,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/7e51637695bad2fc_360.mp4",
+        "480": "clips/7e51637695bad2fc_480.mp4",
+        "720": "clips/7e51637695bad2fc_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T10:58:55.395Z",
+      "updatedAt": "2026-10-24T10:59:04.581Z"
+    },
+    "d77561eb6daec64c": {
+      "id": "d77561eb6daec64c",
+      "title": "s03_gruppa",
+      "rawFile": "d77561eb6daec64c.mp4",
+      "duration": 25.28,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/d77561eb6daec64c_360.mp4",
+        "480": "clips/d77561eb6daec64c_480.mp4",
+        "720": "clips/d77561eb6daec64c_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T11:05:24.602Z",
+      "updatedAt": "2026-10-24T11:05:33.837Z"
+    },
+    "5e8b823e653a96cd": {
+      "id": "5e8b823e653a96cd",
+      "title": "s03_A",
+      "rawFile": "5e8b823e653a96cd.mp4",
+      "duration": 20,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/5e8b823e653a96cd_360.mp4",
+        "480": "clips/5e8b823e653a96cd_480.mp4",
+        "720": "clips/5e8b823e653a96cd_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T11:07:06.717Z",
+      "updatedAt": "2026-10-24T11:07:14.378Z"
+    },
+    "f5c5c78597b9818e": {
+      "id": "f5c5c78597b9818e",
+      "title": "s03_B",
+      "rawFile": "f5c5c78597b9818e.mp4",
+      "duration": 20,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/f5c5c78597b9818e_360.mp4",
+        "480": "clips/f5c5c78597b9818e_480.mp4",
+        "720": "clips/f5c5c78597b9818e_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T11:07:14.114Z",
+      "updatedAt": "2026-10-24T11:07:20.145Z"
+    },
+    "2a6ab8fbc4863ccb": {
+      "id": "2a6ab8fbc4863ccb",
+      "title": "s03_NC",
+      "rawFile": "2a6ab8fbc4863ccb.mp4",
+      "duration": 10,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/2a6ab8fbc4863ccb_360.mp4",
+        "480": "clips/2a6ab8fbc4863ccb_480.mp4",
+        "720": "clips/2a6ab8fbc4863ccb_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T11:07:20.555Z",
+      "updatedAt": "2026-10-24T11:07:24.000Z"
+    },
+    "fffaec1347192092": {
+      "id": "fffaec1347192092",
+      "title": "s04_verbovka",
+      "rawFile": "fffaec1347192092.mp4",
+      "duration": 70,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/fffaec1347192092_360.mp4",
+        "480": "clips/fffaec1347192092_480.mp4",
+        "720": "clips/fffaec1347192092_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T11:08:03.206Z",
+      "updatedAt": "2026-10-24T11:08:22.232Z"
+    },
+    "3227b3ce245fffbf": {
+      "id": "3227b3ce245fffbf",
+      "title": "s04_A",
+      "rawFile": "3227b3ce245fffbf.mp4",
+      "duration": 30,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/3227b3ce245fffbf_360.mp4",
+        "480": "clips/3227b3ce245fffbf_480.mp4",
+        "720": "clips/3227b3ce245fffbf_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T11:09:27.054Z",
+      "updatedAt": "2026-10-24T11:09:36.401Z"
+    },
+    "e381013e0a2d9e8b": {
+      "id": "e381013e0a2d9e8b",
+      "title": "s04_B",
+      "rawFile": "e381013e0a2d9e8b.mp4",
+      "duration": 30,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/e381013e0a2d9e8b_360.mp4",
+        "480": "clips/e381013e0a2d9e8b_480.mp4",
+        "720": "clips/e381013e0a2d9e8b_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T11:09:34.727Z",
+      "updatedAt": "2026-10-24T11:09:44.555Z"
+    },
+    "4ba6a560b1d9f3db": {
+      "id": "4ba6a560b1d9f3db",
+      "title": "s04_NC",
+      "rawFile": "4ba6a560b1d9f3db.mp4",
+      "duration": 30,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/4ba6a560b1d9f3db_360.mp4",
+        "480": "clips/4ba6a560b1d9f3db_480.mp4",
+        "720": "clips/4ba6a560b1d9f3db_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T11:09:40.891Z",
+      "updatedAt": "2026-10-24T11:09:52.237Z"
+    },
+    "fba2eb5baec3023b": {
+      "id": "fba2eb5baec3023b",
+      "title": "s05_final",
+      "rawFile": "fba2eb5baec3023b.mp4",
+      "duration": 36,
+      "status": "ready",
+      "error": null,
+      "published": false,
+      "outputs": {
+        "360": "clips/fba2eb5baec3023b_360.mp4",
+        "480": "clips/fba2eb5baec3023b_480.mp4",
+        "720": "clips/fba2eb5baec3023b_720.mp4"
+      },
+      "interactive": false,
+      "choice": {
+        "start": null,
+        "duration": 10,
+        "A": {
+          "text": "Вариант A",
+          "target": null,
+          "area": {
+            "x": 10,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "B": {
+          "text": "Вариант B",
+          "target": null,
+          "area": {
+            "x": 55,
+            "y": 55,
+            "width": 35,
+            "height": 22
+          }
+        },
+        "timeoutTarget": null
+      },
+      "next": null,
+      "createdAt": "2026-10-24T11:09:52.909Z",
+      "updatedAt": "2026-10-24T11:10:01.845Z"
+    }
+  }
+}

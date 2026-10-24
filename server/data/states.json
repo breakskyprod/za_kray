@@ -1,0 +1,34 @@
+{
+  "v_dlurhpwfruvmu3z8r60": {
+    "episodeId": 1,
+    "sceneId": "ep_52870a41f1d90170",
+    "storyState": {
+      "group_contact": false,
+      "max_signal": false,
+      "max_action": false,
+      "max_evidence": false,
+      "max_adult": false,
+      "anya_job": false,
+      "anya_money": false,
+      "anya_transfer": false,
+      "anya_understand": false,
+      "anya_adult": false,
+      "timur_job": false,
+      "timur_paid": false,
+      "timur_repeat": false,
+      "timur_suspicion": false,
+      "timur_drug": 0,
+      "timur_adult": false,
+      "lena_alex": false,
+      "lena_views": false,
+      "lena_validation": false,
+      "lena_extrem": false,
+      "lena_evidence": false,
+      "lena_adult": false
+    },
+    "playedInserts": [],
+    "watchedEpisodes": [],
+    "savedAt": 1792841368825,
+    "updatedAt": "2026-10-24T11:29:28.828Z"
+  }
+}

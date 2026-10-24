@@ -1,0 +1,514 @@
+{
+  "projects": {
+    "5a4b7c1d2e3f9a80": {
+      "id": "5a4b7c1d2e3f9a80",
+      "title": "За край",
+      "kind": "series",
+      "published": false,
+      "episodes": {},
+      "createdAt": "2026-10-23T18:06:33.843Z",
+      "updatedAt": "2026-10-23T19:01:42.563Z"
+    },
+    "120afd0772c6e6e2": {
+      "id": "120afd0772c6e6e2",
+      "title": "Не подруга",
+      "kind": "series",
+      "published": true,
+      "episodes": {
+        "a73721d9ec54dbfb": {
+          "id": "a73721d9ec54dbfb",
+          "title": "Эпизод 1",
+          "role": "start",
+          "fragmentId": "798d691ea94d10d4",
+          "x": 5,
+          "y": 12,
+          "interactive": false,
+          "next": "292309b8e5566333",
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        },
+        "292309b8e5566333": {
+          "id": "292309b8e5566333",
+          "title": "Эпизод 2",
+          "role": "normal",
+          "fragmentId": "3efad19bbe1ca7b0",
+          "x": 45,
+          "y": 189,
+          "interactive": true,
+          "next": null,
+          "choice": {
+            "start": 35,
+            "duration": 10,
+            "A": {
+              "text": "Хорошо. Давай никому не будем показывать",
+              "target": "d1d92fb5c5a50bcd",
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "А почему это нужно скрывать?",
+              "target": "8958d8f741294440",
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": "888447afd5409c6d"
+          }
+        },
+        "d1d92fb5c5a50bcd": {
+          "id": "d1d92fb5c5a50bcd",
+          "title": "Эпизод 3",
+          "role": "normal",
+          "fragmentId": "b71602f91ab5bc28",
+          "x": 323,
+          "y": 56,
+          "interactive": false,
+          "next": "25c9cb3af48e3e92",
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        },
+        "8958d8f741294440": {
+          "id": "8958d8f741294440",
+          "title": "Эпизод 4",
+          "role": "normal",
+          "fragmentId": "1b2c04c0a3c59e0c",
+          "x": 330,
+          "y": 189,
+          "interactive": false,
+          "next": "25c9cb3af48e3e92",
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        },
+        "888447afd5409c6d": {
+          "id": "888447afd5409c6d",
+          "title": "Эпизод 5",
+          "role": "normal",
+          "fragmentId": "27530510af9f67ac",
+          "x": 302,
+          "y": 311,
+          "interactive": false,
+          "next": "25c9cb3af48e3e92",
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        },
+        "25c9cb3af48e3e92": {
+          "id": "25c9cb3af48e3e92",
+          "title": "Эпизод 6",
+          "role": "normal",
+          "fragmentId": "d77561eb6daec64c",
+          "x": 598,
+          "y": 189,
+          "interactive": true,
+          "next": null,
+          "choice": {
+            "start": 15.2,
+            "duration": 10,
+            "A": {
+              "text": "Ладно. Я останусь",
+              "target": "56f429907712bc64",
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Мне это не нравится. Я выхожу",
+              "target": "91b3a02ab8ea935e",
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": "28326d0c15978864"
+          }
+        },
+        "56f429907712bc64": {
+          "id": "56f429907712bc64",
+          "title": "Эпизод 7",
+          "role": "normal",
+          "fragmentId": "5e8b823e653a96cd",
+          "x": 835,
+          "y": 41,
+          "interactive": false,
+          "next": "b43d66b63dc3b909",
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        },
+        "91b3a02ab8ea935e": {
+          "id": "91b3a02ab8ea935e",
+          "title": "Эпизод 8",
+          "role": "normal",
+          "fragmentId": "f5c5c78597b9818e",
+          "x": 872,
+          "y": 190,
+          "interactive": false,
+          "next": "b43d66b63dc3b909",
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        },
+        "28326d0c15978864": {
+          "id": "28326d0c15978864",
+          "title": "Эпизод 9",
+          "role": "normal",
+          "fragmentId": "2a6ab8fbc4863ccb",
+          "x": 849,
+          "y": 312,
+          "interactive": false,
+          "next": "b43d66b63dc3b909",
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        },
+        "b43d66b63dc3b909": {
+          "id": "b43d66b63dc3b909",
+          "title": "Эпизод 10",
+          "role": "normal",
+          "fragmentId": "fffaec1347192092",
+          "x": 1142,
+          "y": 189,
+          "interactive": true,
+          "next": null,
+          "choice": {
+            "start": 60,
+            "duration": 10,
+            "A": {
+              "text": "Что мне нужно сделать?»",
+              "target": "52870a41f1d90170",
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Нет. Я не буду участвовать в том, что от меня скрывают",
+              "target": "9a6cec089dd4701e",
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": "8d1c41207ab3c988"
+          }
+        },
+        "52870a41f1d90170": {
+          "id": "52870a41f1d90170",
+          "title": "Эпизод 11",
+          "role": "normal",
+          "fragmentId": "3227b3ce245fffbf",
+          "x": 1404,
+          "y": 48,
+          "interactive": false,
+          "next": "3f04c9d64a2e1991",
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        },
+        "9a6cec089dd4701e": {
+          "id": "9a6cec089dd4701e",
+          "title": "Эпизод 12",
+          "role": "normal",
+          "fragmentId": "e381013e0a2d9e8b",
+          "x": 1449,
+          "y": 189,
+          "interactive": false,
+          "next": "3f04c9d64a2e1991",
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        },
+        "8d1c41207ab3c988": {
+          "id": "8d1c41207ab3c988",
+          "title": "Эпизод 13",
+          "role": "normal",
+          "fragmentId": "4ba6a560b1d9f3db",
+          "x": 1396,
+          "y": 315,
+          "interactive": false,
+          "next": "3f04c9d64a2e1991",
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        },
+        "3f04c9d64a2e1991": {
+          "id": "3f04c9d64a2e1991",
+          "title": "Эпизод 14",
+          "role": "end",
+          "fragmentId": "fba2eb5baec3023b",
+          "x": 1757,
+          "y": 189,
+          "interactive": false,
+          "next": null,
+          "choice": {
+            "start": null,
+            "duration": 10,
+            "A": {
+              "text": "Вариант A",
+              "target": null,
+              "area": {
+                "x": 10,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "B": {
+              "text": "Вариант B",
+              "target": null,
+              "area": {
+                "x": 55,
+                "y": 55,
+                "width": 35,
+                "height": 22
+              }
+            },
+            "timeoutTarget": null
+          }
+        }
+      },
+      "createdAt": "2026-10-24T10:52:58.360Z",
+      "updatedAt": "2026-10-24T11:18:34.369Z",
+      "cover": "/uploads/covers/120afd0772c6e6e2.png?v=1792840452296"
+    }
+  }
+}
