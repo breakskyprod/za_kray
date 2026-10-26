@@ -178,11 +178,18 @@
 
     function buildCard(item) {
         var locked = !!item.locked;
-        var a = document.createElement('a');
-        a.className = 'poster-card' + (locked ? ' is-locked' : '');
+        // Страница сериала пока не публикуется: карточка — только тизер,
+        // никуда не ведёт. Доступ к /series.html — по прямому адресу.
+        var isTeaser = item.type === 'series';
+        var inert = locked || isTeaser;
+        var clickable = !inert && item.href;
+        var a = document.createElement(clickable ? 'a' : 'div');
+        a.className = 'poster-card' + (inert ? ' is-locked' : '');
         a.setAttribute('role', 'listitem');
-        a.href = item.href || '#';
-        a.setAttribute('aria-label', item.title || 'Открыть');
+        if (clickable) {
+            a.href = item.href;
+            a.setAttribute('aria-label', item.title || 'Открыть');
+        }
 
         var media = document.createElement('div');
         media.className = 'poster-card__media';
@@ -190,19 +197,13 @@
         if (bg) media.style.backgroundImage = "url('" + bg + "'), linear-gradient(145deg,#1a1a3e,#0b0b1a)";
 
         var inner = '';
-        if (locked) inner += '<span class="poster-card__badge poster-card__badge--soon">Скоро</span>';
+        if (inert) inner += '<span class="poster-card__badge poster-card__badge--soon">Скоро</span>';
         else if (item.badge) inner += '<span class="poster-card__badge">' + esc(item.badge) + '</span>';
-        inner += '<div class="poster-card__title' + (locked ? ' is-locked' : '') + '">' + esc(item.title) + '</div>';
-        if (locked) inner += '<div class="poster-card__lock"><span>Закрыто</span></div>';
+        inner += '<div class="poster-card__title' + (inert ? ' is-locked' : '') + '">' + esc(item.title) + '</div>';
+        if (inert) inner += '<div class="poster-card__lock"><span>Скоро</span></div>';
         media.innerHTML = inner;
         a.appendChild(media);
 
-        if (locked) {
-            a.addEventListener('click', function (e) {
-                e.preventDefault();
-                openGate(item.href);
-            });
-        }
         return a;
     }
 
