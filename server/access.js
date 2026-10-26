@@ -19,8 +19,14 @@ const path = require('path');
 const COOKIE_NAME = 'zk_access';
 const COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 7; // 7 дней
 const SERIES_HREF = '/series.html';
-// Страницы, которые закрыты паролем, пока сериал заблокирован
-const GATED_PAGES = ['/series.html', '/player_v2.html'];
+// Страницы, доступ к которым МОЖЕТ требовать пароль.
+// Решение принимается для каждой страницы/ролика отдельно — см. needsGate().
+// Пароль отключён: /series.html открывается только по прямому адресу, как /admin.
+// Чтобы вернуть защиту паролем, перечислите здесь нужные страницы.
+const GATED_PAGES = [];
+// id «За край» — фиксированный, как в projects.js
+const ZAKRAY_ID = process.env.ZAKRAY_ID || '5a4b7c1d2e3f9a80';
+const PID_RE = /^[a-f0-9]{16}$/;
 
 const MAX_FAILS = 5;                 // неверных попыток до блокировки
 const LOCK_WINDOW_MS = 15 * 60 * 1000; // блокировка на 15 минут
@@ -41,16 +47,48 @@ if (!PASSWORD) {
     console.warn('⚠️  SERIES_PASSWORD не задан — доступ к закрытым страницам будет закрыт для всех.');
 }
 
-// ---------- Каталог: закрыт ли сериал ----------
-function isSeriesLocked(catalogFile) {
+// ---------- Каталог ----------
+function readCatalog(catalogFile) {
     try {
         const data = JSON.parse(fs.readFileSync(catalogFile, 'utf8'));
-        const item = (data.items || []).find(it => it.href === SERIES_HREF);
-        // если записи нет или она не читается — по умолчанию закрыто
-        return item ? !!item.locked : true;
+        return Array.isArray(data.items) ? data.items : [];
     } catch (e) {
-        return true;
+        return [];
     }
+}
+
+// ---------- Каталог: закрыт ли сериал ----------
+function isSeriesLocked(catalogFile) {
+    const item = readCatalog(catalogFile).find(it => it.href === SERIES_HREF);
+    // если записи нет или она не читается — по умолчанию закрыто
+    return item ? !!item.locked : true;
+}
+
+// ---------- Каталог: закрыт ли конкретный ролик (?p=<pid>) ----------
+// Ищем запись в каталоге по id. Если её нет — считаем, что это серия сериала,
+// и наследуем замок сериала (закрыто по умолчанию).
+function isProjectLocked(pid, catalogFile) {
+    if (typeof pid !== 'string' || !PID_RE.test(pid)) return true;
+    if (pid === ZAKRAY_ID) return isSeriesLocked(catalogFile);
+    const items = readCatalog(catalogFile);
+    const item = items.find(it => it.id === 'project-' + pid || it.id === pid);
+    if (!item) return isSeriesLocked(catalogFile);
+    return !!item.locked;
+}
+
+// ---------- Нужен ли пароль для этого запроса ----------
+function needsGate(req, catalogFile) {
+    const pathname = req.path;
+    if (!GATED_PAGES.includes(pathname)) return false;
+
+    // Страница сериала — замок по флагу сериала
+    if (pathname === SERIES_HREF) return isSeriesLocked(catalogFile);
+
+    // Плеер: без ?p= — это сам сериал,
+    // с ?p=<pid> — смотрим флаг конкретного ролика
+    const pid = req.query.p;
+    if (typeof pid === 'string' && pid.length) return isProjectLocked(pid, catalogFile);
+    return isSeriesLocked(catalogFile);
 }
 
 // ---------- Подпись токена: "<expires>.<hmac>" ----------
@@ -160,14 +198,13 @@ function accessGate(app, options) {
 
     // Middleware: закрытые страницы
     app.use((req, res, next) => {
-        const pathname = req.path;
-        if (!GATED_PAGES.includes(pathname)) return next();
-        if (!isSeriesLocked(catalogFile)) return next(); // сериал открыт — пускаем всех
+        // Пароль требуется только там, где запись закрыта (locked: true)
+        if (!needsGate(req, catalogFile)) return next();
 
         if (checkToken(readCookie(req, COOKIE_NAME))) return next();
 
         // Нет доступа — отправляем на главную с открытым окном пароля
-        const next_ = encodeURIComponent(pathname + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
+        const next_ = encodeURIComponent(req.path + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
         return res.redirect(302, `/?gate=1&next=${next_}`);
     });
 }
@@ -186,4 +223,4 @@ function isSecureRequest(req) {
     return req.secure || req.get('x-forwarded-proto') === 'https';
 }
 
-module.exports = { accessGate, isSeriesLocked, GATED_PAGES, COOKIE_NAME };
+module.exports = { accessGate, isSeriesLocked, isProjectLocked, needsGate, GATED_PAGES, COOKIE_NAME };
