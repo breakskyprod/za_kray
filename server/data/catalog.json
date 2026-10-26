@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "id": "zakray-series",
+      "type": "series",
+      "title": "За край",
+      "poster": "poster_zakray.jpg",
+      "locked": true,
+      "href": "/series.html",
+      "badge": "Сериал"
+    },
+    {
+      "id": "project-120afd0772c6e6e2",
+      "type": "project",
+      "title": "Не подруга",
+      "poster": "/uploads/covers/120afd0772c6e6e2.png?v=1792840452296",
+      "locked": false,
+      "href": "/player_v2.html?p=120afd0772c6e6e2",
+      "badge": ""
+    }
+  ]
+}

@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<title>За край — админка</title>
+<style>
+  :root { --bg:#0b0b1a; --panel:#14142b; --line:rgba(255,255,255,.08); --text:#e8ecf5; --muted:#8b93a8;
+          --a:#4A9EFF; --b:#A45CFF; --ok:#3ddc97; --warn:#ffb547; --err:#ff6b7f; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .hidden { display:none !important; }
+  .muted { color:var(--muted); font-size:.85rem; }
+  .btn { padding:9px 14px; border-radius:10px; border:1px solid var(--line); background:#1d1d3a; cursor:pointer; }
+  .btn:hover { border-color:rgba(255,255,255,.2); }
+  .btn.primary { background:linear-gradient(135deg,var(--a),var(--b)); border:none; font-weight:600; }
+  .btn.danger { color:var(--err); }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn.small { padding:6px 10px; font-size:.82rem; }
+  input[type=text], input[type=password], input[type=number], select {
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:#0c0c20; }
+  input:focus, select:focus { outline:none; border-color:var(--a); }
+  label.field { display:block; font-size:.82rem; color:var(--muted); margin:14px 0 6px; }
+  .err-line { color:var(--err); font-size:.88rem; min-height:20px; margin-top:8px; }
+
+  /* вход */
+  #login { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .login-box { width:100%; max-width:360px; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:28px; }
+  .login-box h1 { margin:0 0 6px; font-size:1.3rem; }
+
+  /* шапка */
+  header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 28px;
+           border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:10; }
+  header .brand { display:flex; align-items:center; gap:12px; min-width:0; }
+  header .logo { width:32px; height:32px; border-radius:9px; flex-shrink:0; background:linear-gradient(135deg,var(--a),var(--b)); }
+  header h1 { margin:0; font-size:1.05rem; }
+  .head-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .ptitle { background:transparent; border:1px solid transparent; font-size:1.05rem; font-weight:600; padding:6px 8px; width:380px; max-width:50vw; border-radius:8px; }
+  .ptitle:hover { border-color:var(--line); }
+  .ptitle:focus { outline:none; border-color:var(--a); background:#0c0c20; }
+  main { max-width:1200px; margin:0 auto; padding:28px; }
+  .page-head { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+  .page-head h2 { margin:0; font-size:1.4rem; }
+
+  /* карточки проектов */
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; display:flex; flex-direction:column; gap:12px;
+          cursor:pointer; transition:border-color .15s, transform .15s; }
+  .card:hover { border-color:rgba(74,158,255,.45); transform:translateY(-2px); }
+  .card-top { display:flex; align-items:center; gap:12px; }
+  .cover { width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg,var(--a),var(--b)); flex-shrink:0;
+           display:flex; align-items:center; justify-content:center; font-weight:700; font-size:1.1rem; }
+  .card h3 { margin:0; font-size:1.02rem; word-break:break-word; }
+  .card .meta { color:var(--muted); font-size:.84rem; }
+  .card .foot { display:flex; justify-content:flex-end; margin-top:auto; }
+  .tags { display:flex; flex-wrap:wrap; gap:6px; }
+  .tag { font-size:.75rem; padding:3px 9px; border-radius:999px; background:#1d1d3a; color:var(--muted); }
+  .tag.ok { color:var(--ok); } .tag.warn { color:var(--warn); } .tag.err { color:var(--err); }
+  .card.new { border-style:dashed; align-items:center; justify-content:center; color:var(--muted); min-height:150px; }
+  .card.new:hover { color:var(--text); }
+  .plus { font-size:2rem; line-height:1; }
+
+  /* модалки */
+  .modal { position:fixed; inset:0; background:rgba(3,3,10,.75); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; padding:24px; z-index:50; }
+  .dialog { width:100%; max-width:420px; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:24px; }
+  .dialog h3 { margin:0 0 4px; font-size:1.1rem; }
+  .dialog-foot { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+
+  /* редактор */
+  #editor { position:fixed; inset:0; background:var(--bg); z-index:40; overflow:auto; }
+  .ed { display:grid; grid-template-columns:250px 1fr 330px; gap:14px; padding:16px 28px 8px; height:calc(100vh - 220px); min-height:560px; }
+  .palette { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:8px; }
+  .palette h4 { margin:0 0 4px; font-size:.85rem; color:var(--muted); font-weight:500; }
+  .pal { padding:11px 12px; border-radius:10px; background:#1d1d3a; border:1px solid var(--line); cursor:grab; user-select:none; font-size:.9rem; }
+  .pal[data-role=start] { border-color:rgba(61,220,151,.5); }
+  .pal[data-role=end] { border-color:rgba(255,181,71,.5); }
+  .legend { font-size:.8rem; color:var(--muted); margin-top:auto; line-height:2; }
+  .sw { display:inline-block; width:14px; height:4px; border-radius:2px; margin-right:6px; vertical-align:middle; }
+  .sw.a { background:var(--a); } .sw.b { background:var(--b); } .sw.t { background:var(--muted); }
+  .wrap { background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:auto; position:relative; }
+  .canvas { position:relative; width:2000px; height:1400px;
+            background-image:radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px); background-size:24px 24px; }
+  #edges { position:absolute; left:0; top:0; pointer-events:none; }
+  .node { position:absolute; width:200px; height:72px; background:#1d1d3a; border:1.5px solid rgba(255,255,255,.15);
+          border-radius:12px; padding:10px 12px; cursor:grab; user-select:none; box-shadow:0 6px 18px rgba(0,0,0,.3); overflow:hidden; }
+  .node.role-start { border-color:var(--ok); }
+  .node.role-end { border-color:var(--warn); }
+  .node.sel { box-shadow:0 0 0 2px var(--a); }
+  .node b { display:block; font-size:.92rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .node .nt { font-size:.75rem; color:var(--muted); margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .inspector { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; overflow:auto; }
+  .ins-h { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .ins-h h4 { margin:0; font-size:1rem; }
+  .vid { font-size:.85rem; color:var(--muted); margin-top:6px; }
+  .mode { display:flex; background:#0c0c20; border:1px solid var(--line); border-radius:12px; padding:4px; gap:4px; margin-top:6px; }
+  .mode button { flex:1; padding:9px; border-radius:9px; border:none; background:transparent; cursor:pointer; color:var(--muted); }
+  .mode button.on { background:linear-gradient(135deg,var(--a),var(--b)); color:#fff; font-weight:600; }
+  .box { background:#0f0f25; border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:12px; }
+  .box .lbl-a { color:var(--a); } .box .lbl-b { color:var(--b); }
+  .ins-foot { display:flex; justify-content:flex-end; margin-top:16px; }
+  .problems { margin:8px 28px 24px; background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; }
+  .problems h4 { margin:0 0 8px; font-size:.95rem; }
+  .problems ul { margin:0; padding-left:18px; color:#ffb3bd; font-size:.88rem; line-height:1.7; }
+  .ok-line { color:var(--ok); font-size:.9rem; }
+  .drop { border:2px dashed rgba(74,158,255,.35); border-radius:12px; padding:18px 12px; text-align:center; cursor:pointer; background:rgba(74,158,255,.04); transition:.15s; }
+  .drop.over { border-color:var(--a); background:rgba(74,158,255,.14); }
+  .drop strong { display:block; margin-bottom:4px; font-size:.9rem; }
+  .drop .muted { font-size:.78rem; }
+  .eplist { display:flex; flex-direction:column; gap:4px; overflow:auto; max-height:200px; }
+  .epitem { display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:8px; background:#1d1d3a; font-size:.82rem; cursor:pointer; }
+  .epitem.sel { outline:1px solid var(--a); }
+  .epname { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .epmeta { color:var(--muted); font-size:.72rem; }
+  .nodel { position:absolute; top:4px; right:6px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:1.1rem; line-height:1; padding:2px 4px; }
+  .nodel:hover { color:var(--err); }
+  .qlist { display:flex; flex-direction:column; gap:6px; overflow:auto; max-height:260px; }
+  .qitem { background:#1d1d3a; border-radius:8px; padding:7px 9px; font-size:.8rem; word-break:break-all; }
+  .qitem.ok { color:var(--ok); }
+  .qitem.err { color:#ffb3bd; }
+
+  .tl { position:relative; height:64px; background:#0c0c20; border:1px solid var(--line); border-radius:12px; margin:14px 0 4px; user-select:none; }
+  .tl-win { position:absolute; top:8px; bottom:8px; background:linear-gradient(135deg,rgba(74,158,255,.45),rgba(164,92,255,.45)); border:1.5px solid var(--a); border-radius:8px; cursor:grab; }
+  .tl-win:active { cursor:grabbing; }
+  .tl-grip { position:absolute; right:-6px; top:0; bottom:0; width:12px; cursor:ew-resize; }
+  .tl-ticks { position:relative; height:18px; font-size:.72rem; color:var(--muted); margin-bottom:6px; }
+  .tl-ticks span { position:absolute; transform:translateX(-50%); }
+  .tl-info { font-size:.9rem; margin-top:8px; line-height:1.6; }
+  .dialog.wide { max-width:720px; }
+  .cov-prev { display:block; height:300px; width:auto; aspect-ratio:210/297; object-fit:cover; border-radius:12px; border:1px solid var(--line); background:#0c0c20; margin:12px auto 0; }
+
+  .serbox { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 28px; border-bottom:1px solid var(--line); background:#101028; }
+  .serbox select { width:auto; min-width:200px; }
+
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1d1d3a; border:1px solid var(--line);
+           padding:12px 18px; border-radius:12px; font-size:.92rem; z-index:99; box-shadow:0 10px 30px rgba(0,0,0,.4);
+           white-space:pre-line; max-width:90vw; }
+  .toast.err { border-color:rgba(255,107,127,.5); color:#ffb3bd; }
+/* полировка интерфейса */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; line-height:1.2; text-align:center; white-space:nowrap; }
+.btn.small { padding:6px 12px; }
+.box { padding:16px 18px; }
+label.field { margin:16px 0 8px; }
+.ins-foot .btn { min-width:160px; }
+
+/* текст эпизода на холсте: перенос на 2 строки, без выхода за границы */
+.node { padding:10px 14px 8px; }
+.node b { white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+          overflow:hidden; word-break:break-word; line-height:1.25; padding-right:14px; }
+.node .nt { margin-top:4px; flex-wrap:nowrap; overflow:hidden; white-space:nowrap; font-size:.72rem; }
+/* карточка эпизода: больше места и перенос текста вниз */
+.node { width:220px; height:100px; }
+.node .nt { flex-wrap:wrap; white-space:normal; overflow:visible; row-gap:3px; margin-top:6px; }
+.node .nt span { white-space:normal; }
+</style>
+</head>
+<body>
+
+<!-- ВХОД -->
+<section id="login">
+  <form class="login-box" id="loginForm" autocomplete="off">
+    <h1>Вход в админку</h1>
+    <p class="muted">Введите ключ администратора.</p>
+    <label class="field" for="loginKey">Ключ</label>
+    <input type="password" id="loginKey" required />
+    <button class="btn primary" type="submit" style="width:100%;margin-top:16px;">Войти</button>
+    <div class="err-line" id="loginErr"></div>
+  </form>
+</section>
+
+<!-- ПАНЕЛЬ ПРОЕКТОВ -->
+<div id="app" class="hidden">
+  <header>
+    <div class="brand"><div class="logo"></div><h1>Проекты</h1></div>
+    <button class="btn" id="logoutBtn">Выйти</button>
+  </header>
+  <main>
+    <div class="page-head">
+      <div>
+        <h2>Ваши проекты</h2>
+        <div class="muted">Серия собирается из эпизодов. Публикуется проект целиком.</div>
+      </div>
+      <button class="btn primary" id="newProjectBtn">+ Создать проект</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  </main>
+</div>
+
+<!-- РЕДАКТОР ПРОЕКТА -->
+<div id="editor" class="hidden"></div>
+
+<!-- МОДАЛКА: новый проект -->
+<div class="modal hidden" id="newModal">
+  <form class="dialog" id="newForm" autocomplete="off">
+    <h3>Новый проект</h3>
+    <div class="muted">Название пойдёт в публикацию на главной.</div>
+    <label class="field" for="newTitle">Название</label>
+    <input type="text" id="newTitle" maxlength="120" required placeholder="Например, «Тень над рекой»" />
+    <div class="err-line" id="newErr"></div>
+    <div class="dialog-foot">
+      <button class="btn" type="button" id="newCancel">Отмена</button>
+      <button class="btn primary" type="submit" id="newSubmit">Создать и открыть</button>
+    </div>
+  </form>
+</div>
+
+<!-- МОДАЛКА: окно выбора на таймлайне -->
+<div class="modal hidden" id="tlModal">
+  <div class="dialog wide">
+    <h3>Окно выбора на таймлайне</h3>
+    <div class="muted">Перетащите полоску: её начало — момент, когда появятся кнопки. Правый край меняет длительность.</div>
+    <div class="tl" id="tl"><div class="tl-win" id="tlWin"><div class="tl-grip" id="tlGrip"></div></div></div>
+    <div class="tl-ticks" id="tlTicks"></div>
+    <div class="tl-info" id="tlInfo"></div>
+    <div class="err-line" id="tlErr"></div>
+    <div class="dialog-foot">
+      <button class="btn" type="button" id="tlCancel">Отмена</button>
+      <button class="btn primary" type="button" id="tlApply">Применить</button>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА: публикация серии с обложкой -->
+<div class="modal hidden" id="pubModal">
+  <div class="dialog wide">
+    <h3>Публикация серии</h3>
+    <div class="muted" id="pubHint"></div>
+    <img id="pubPrev" class="cov-prev hidden" alt="" />
+    <label class="field" for="pubFile">Обложка А4 (вертикальная, 210×297): JPG, PNG или WebP, до 5 МБ</label>
+    <input type="file" id="pubFile" accept="image/jpeg,image/png,image/webp" />
+    <div class="err-line" id="pubErr"></div>
+    <div class="dialog-foot">
+      <button class="btn" type="button" id="pubCancel">Отмена</button>
+      <button class="btn primary" type="button" id="pubGo">Опубликовать</button>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА: удаление проекта -->
+<div class="modal hidden" id="delModal">
+  <div class="dialog">
+    <h3>Удалить проект?</h3>
+    <div class="muted" id="delText"></div>
+    <div class="err-line" id="delErr"></div>
+    <div class="dialog-foot">
+      <button class="btn" type="button" id="delCancel">Отмена</button>
+      <button class="btn danger" type="button" id="delConfirm">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const $ = (sel) => document.querySelector(sel);
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+  const ZAKRAY_ID = '5a4b7c1d2e3f9a80';
+  const NODE_W = 220, NODE_H = 100;
+  const CANVAS_W = 2000, CANVAS_H = 1400;
+  const CHUNK = 8 * 1024 * 1024;
+  const ROLE_LABEL = { normal: 'Эпизод', start: 'Стартовый', end: 'Конечный' };
+
+  function toast(msg, isErr) {
+    const t = document.createElement('div');
+    t.className = 'toast' + (isErr ? ' err' : '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), isErr ? 7000 : 3200);
+  }
+
+  async function api(method, url, body) {
+    const opts = { method, headers: {}, credentials: 'same-origin' };
+    if (body !== undefined) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
+    const res = await fetch(url, opts);
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (res.status === 401) { showLogin(); throw new Error('Сессия истекла, войдите снова'); }
+    if (!res.ok) {
+      const details = data && data.details ? '\n• ' + data.details.join('\n• ') : '';
+      throw new Error(((data && data.error) || ('Ошибка ' + res.status)) + details);
+    }
+    return data;
+  }
+
+  // ---------- вход / выход ----------
+  function showLogin() {
+    $('#app').classList.add('hidden');
+    $('#editor').classList.add('hidden');
+    $('#login').classList.remove('hidden');
+    $('#loginKey').value = '';
+    $('#loginKey').focus();
+  }
+  function showApp() {
+    $('#login').classList.add('hidden');
+    $('#editor').classList.add('hidden');
+    $('#app').classList.remove('hidden');
+    loadProjects();
+  }
+
+  $('#loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('#loginErr').textContent = '';
+    try {
+      await api('POST', '/api/admin/login', { key: $('#loginKey').value });
+      showApp();
+    } catch (err) {
+      $('#loginErr').textContent = err.message;
+    }
+  });
+
+  $('#logoutBtn').addEventListener('click', async () => {
+    try { await api('POST', '/api/admin/logout'); } catch (e) {}
+    showLogin();
+  });
+
+  // ---------- список проектов ----------
+  async function loadProjects() {
+    try {
+      const data = await api('GET', '/api/admin/projects');
+      renderProjects(data.items || []);
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
+  function renderProjects(items) {
+    const grid = $('#grid');
+    const cards = items.map(p => `
+      <div class="card" data-id="${esc(p.id)}">
+        <div class="card-top">
+          <div class="cover">${esc((p.title || '?').trim().charAt(0).toUpperCase())}</div>
+          <div style="min-width:0">
+            <h3>${esc(p.title)}</h3>
+            <div class="meta">${p.id === ZAKRAY_ID ? 'Основной сериал' : p.seriesId ? 'Серия ' + p.episodeNumber + ' · За край' : 'Отдельный ролик'}</div>
+          </div>
+        </div>
+        <div class="tags">
+          ${p.published ? '<span class="tag ok">Опубликован</span>' : '<span class="tag">Черновик</span>'}
+          <span class="tag">Эпизодов: ${p.episodeCount}</span>
+        </div>
+        ${p.id !== ZAKRAY_ID && !p.published
+          ? `<div class="foot"><button class="btn small danger" data-del="${esc(p.id)}" data-title="${esc(p.title)}">Удалить</button></div>`
+          : ''}
+      </div>`).join('');
+    grid.innerHTML = cards +
+      `<div class="card new" id="newCard"><div class="plus">+</div><div>Создать проект</div></div>`;
+
+    grid.querySelectorAll('.card[data-id]').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('[data-del]')) return;
+        openEditor(card.dataset.id);
+      });
+    });
+    grid.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDelModal(btn.dataset.del, btn.dataset.title);
+      });
+    });
+    $('#newCard').addEventListener('click', openNewModal);
+  }
+
+  // ---------- удаление проекта ----------
+  let delId = null;
+  function openDelModal(id, title) {
+    delId = id;
+    $('#delText').textContent = `«${title}» и все его эпизоды будут удалены. Видео в каталоге не затрагиваются.`;
+    $('#delErr').textContent = '';
+    $('#delModal').classList.remove('hidden');
+  }
+  function closeDelModal() { delId = null; $('#delModal').classList.add('hidden'); }
+  $('#delCancel').addEventListener('click', closeDelModal);
+  $('#delModal').addEventListener('click', (e) => { if (e.target.id === 'delModal') closeDelModal(); });
+  $('#delConfirm').addEventListener('click', async () => {
+    if (!delId) return;
+    $('#delConfirm').disabled = true;
+    try {
+      await api('DELETE', '/api/admin/projects/' + delId);
+      closeDelModal();
+      toast('Проект удалён');
+      loadProjects();
+    } catch (err) {
+      $('#delErr').textContent = err.message;
+    } finally {
+      $('#delConfirm').disabled = false;
+    }
+  });
+
+  // ---------- создание проекта ----------
+  function openNewModal() {
+    $('#newErr').textContent = '';
+    $('#newTitle').value = '';
+    $('#newModal').classList.remove('hidden');
+    setTimeout(() => $('#newTitle').focus(), 0);
+  }
+  function closeNewModal() { $('#newModal').classList.add('hidden'); }
+  $('#newProjectBtn').addEventListener('click', openNewModal);
+  $('#newCancel').addEventListener('click', closeNewModal);
+  $('#newModal').addEventListener('click', (e) => { if (e.target.id === 'newModal') closeNewModal(); });
+  $('#newForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = $('#newTitle').value.trim();
+    if (!title) { $('#newErr').textContent = 'Введите название'; return; }
+    $('#newSubmit').disabled = true;
+    try {
+      const p = await api('POST', '/api/admin/projects', { title });
+      closeNewModal();
+      openEditor(p.id);
+    } catch (err) {
+      $('#newErr').textContent = err.message;
+    } finally {
+      $('#newSubmit').disabled = false;
+    }
+  });
+
+  // ============================================================
+  //  РЕДАКТОР ПРОЕКТА
+  // ============================================================
+  let P = null;        // проект с сервера (+ черновые правки интерфейса)
+  let PID = null;      // id проекта
+  let selId = null;    // выбранный эпизод
+  let pollTimer = null;
+
+  function startPoll() {
+    stopPoll();
+    pollTimer = setInterval(() => {
+      const busyNow = P && Object.values(P.fragments || {}).some(f => f.status === 'queued' || f.status === 'processing');
+      if (busyNow) reloadQuiet();
+    }, 4000);
+  }
+  function stopPoll() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  async function openEditor(pid) {
+    let data;
+    try {
+      data = await api('GET', '/api/admin/projects/' + pid);
+    } catch (err) {
+      toast(err.message, true);
+      return;
+    }
+    PID = pid;
+    P = data;
+    selId = null;
+    $('#app').classList.add('hidden');
+    $('#editor').classList.remove('hidden');
+    $('#editor').innerHTML = `
+      <header>
+        <div class="brand"><div class="logo"></div><input type="text" class="ptitle" id="pTitle" maxlength="120" /></div>
+        <div class="head-actions">
+          <span id="pStatus"></span>
+          <button class="btn" id="backBtn">← К проектам</button>
+          <button class="btn primary" id="pubBtn"></button>
+        </div>
+      </header>
+      <div class="serbox" id="serBox"></div>
+      <div class="ed">
+        <aside class="palette">
+          <h4>В проекте</h4>
+          <div class="eplist" id="eplist"></div>
+          <button class="btn small" id="addEmpty">+ Пустой эпизод</button>
+          <p class="muted">Роли «Стартовый» и «Конечный» задаются в настройках эпизода справа.</p>
+          <div class="legend">
+            <span class="sw a"></span>кнопка A<br>
+            <span class="sw b"></span>кнопка Б<br>
+            <span class="sw t"></span>таймер / переход
+          </div>
+        </aside>
+        <section class="wrap" id="wrap">
+          <div class="canvas" id="canvas"><svg id="edges" width="${CANVAS_W}" height="${CANVAS_H}"></svg></div>
+        </section>
+        <aside class="inspector" id="insp"></aside>
+      </div>
+      <div class="problems" id="problems"></div>`;
+
+    bindEditor();
+    renderAll();
+    startPoll();
+  }
+
+  function closeEditor() {
+    $('#editor').classList.add('hidden');
+    $('#editor').innerHTML = '';
+    stopPoll();
+    P = null; PID = null; selId = null;
+    $('#app').classList.remove('hidden');
+    loadProjects();
+  }
+
+  async function reload() {
+    try {
+      P = await api('GET', '/api/admin/projects/' + PID);
+      if (selId && !P.episodes[selId]) selId = null;
+      renderAll();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
+  // выполнить действие на сервере, показать результат и перечитать проект
+  async function act(fn, okMsg) {
+    try {
+      await fn();
+      if (okMsg) toast(okMsg);
+    } catch (err) {
+      toast(err.message, true);
+    }
+    await reload();
+  }
+
+  function bindEditor() {
+    $('#backBtn').addEventListener('click', closeEditor);
+
+    $('#pTitle').addEventListener('change', (e) => {
+      const title = e.target.value.trim();
+      if (!title) { e.target.value = P.title; return; }
+      act(() => api('PATCH', `/api/admin/projects/${PID}`, { title }), 'Название сохранено');
+    });
+
+    $('#pubBtn').addEventListener('click', () => {
+      if (P.published) { unpublishSeries(); return; }
+      openPubModal();
+    });
+
+    $('#addEmpty').addEventListener('click', () => {
+      act(async () => {
+        const ep = await createEpisodeAt(freeSpot());
+        selId = ep.id;
+      }, 'Эпизод добавлен');
+    });
+
+    // перетащенный на страницу файл не должен открываться в браузере
+    if (!winBound) {
+      winBound = true;
+      window.addEventListener('dragover', (e) => e.preventDefault());
+      window.addEventListener('drop', (e) => e.preventDefault());
+    }
+
+    const canvas = $('#canvas');
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.target === canvas || e.target.id === 'edges') { selId = null; renderCanvas(); renderInspector(); }
+    });
+  }
+
+  let winBound = false;
+
+
+  // ближайшее свободное место на сетке холста
+  function freeSpot() {
+    const eps = epList();
+    for (let row = 0; row < 12; row++) {
+      for (let col = 0; col < 8; col++) {
+        const x = 40 + col * 240, y = 40 + row * 110;
+        if (!eps.some(e => Math.abs(e.x - x) < NODE_W && Math.abs(e.y - y) < NODE_H)) return { x, y };
+      }
+    }
+    return { x: 40, y: 40 };
+  }
+
+  // создать пустой эпизод на сервере и сразу показать его
+  async function createEpisodeAt(spot) {
+    const ep = await api('POST', `/api/admin/projects/${PID}/episodes`, { x: spot.x, y: spot.y });
+    P.episodes[ep.id] = ep;
+    return ep;
+  }
+
+  // из каждого файла делаем эпизод: название из имени файла, видео грузим в очередь
+
+
+
+  // загрузка видео в выбранный эпизод (из инспектора)
+  async function uploadVideo(file, epId) {
+    const prog = $('#upProg');
+    const show = (t) => { if (prog) prog.textContent = t; };
+    try {
+      const fragId = await sendVideo(file, (pct) => show(pct < 0 ? 'связь прервалась, повторяю…' : `Загрузка: ${pct}%`));
+      show('Проверка и обработка файла…');
+      await api('PATCH', `/api/admin/projects/${PID}/episodes/${epId}`, { fragmentId: fragId });
+      toast('Видео загружено, кодирование запущено');
+      await reload();
+    } catch (err) {
+      toast(err.message, true);
+      show('');
+    }
+  }
+
+  // сервер перезапустился или сессия загрузки потеряна: файл надо отправить заново
+  class LostError extends Error {}
+
+  // отправка одной части с повтором при сетевом сбое
+  async function putChunk(uid, off, blob) {
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      try {
+        return await fetch(`/api/admin/uploads/${uid}/chunk?offset=${off}`, {
+          method: 'PUT',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/octet-stream' },
+          body: blob
+        });
+      } catch (e) {
+        await new Promise(r => setTimeout(r, 2000 * attempt));
+      }
+    }
+    throw new LostError('связь прервалась');
+  }
+
+  // загрузка одного файла по частям, возвращает id фрагмента
+  async function sendVideo(file, onPct) {
+    const MAX_TRIES = 3;
+    for (let t = 1; t <= MAX_TRIES; t++) {
+      try {
+        const ini = await api('POST', '/api/admin/uploads/init', { filename: file.name, size: file.size });
+        const uid = ini.uploadId;
+        const cs = ini.chunkSize || CHUNK;
+        let off = 0;
+        while (off < file.size) {
+          const res = await putChunk(uid, off, file.slice(off, off + cs));
+          if (res.status === 401) { showLogin(); throw new Error('Сессия истекла, войдите снова'); }
+          if (res.status === 404) throw new LostError('сессия загрузки потеряна');
+          const data = await res.json().catch(() => ({}));
+          if (res.status === 409 && typeof data.received === 'number') { off = data.received; continue; }
+          if (!res.ok) throw new Error(data.error || 'Ошибка загрузки части');
+          off = data.received;
+          onPct(Math.floor(off * 100 / file.size));
+        }
+        const frag = await api('POST', `/api/admin/uploads/${uid}/complete`);
+        return frag.id;
+      } catch (err) {
+        if (!(err instanceof LostError) || t === MAX_TRIES) throw err;
+        onPct(-1);                       // покажем «повторяю»
+        await new Promise(r => setTimeout(r, 4000 * t));
+      }
+    }
+  }
+
+  // список загрузок скрыт: показываем только ошибки, и то всплывающим уведомлением
+
+  // обновить холст и список проблем без сброса открытой формы
+  async function reloadQuiet() {
+    if (!PID) return;
+    try {
+      P = await api('GET', '/api/admin/projects/' + PID);
+      if (selId && !P.episodes[selId]) selId = null;
+      renderCanvas();
+      renderProblems();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
+  // ---------- отрисовка ----------
+  function renderAll() {
+    $('#pTitle').value = P.title;
+    $('#pStatus').innerHTML = P.published
+      ? '<span class="tag ok">Опубликован</span>'
+      : '<span class="tag">Черновик</span>';
+    const pb = $('#pubBtn');
+    pb.textContent = P.published ? 'Снять с публикации' : 'Опубликовать';
+    pb.className = 'btn ' + (P.published ? '' : 'primary');
+    renderSeriesBox();
+    renderCanvas();
+    renderInspector();
+    renderProblems();
+  }
+
+  function epList() { return Object.values(P.episodes || {}); }
+
+  // постоянный список эпизодов слева (не зависит от очереди загрузки)
+  function renderEpList() {
+    const box = $('#eplist');
+    if (!box || !P) return;
+    const list = epList().sort((a, b) => a.title.localeCompare(b.title, 'ru'));
+    if (!list.length) { box.innerHTML = '<div class="muted">Эпизодов пока нет</div>'; return; }
+    box.innerHTML = list.map(ep => `
+      <div class="epitem${ep.id === selId ? ' sel' : ''}" data-id="${esc(ep.id)}">
+        <span class="epname">${esc(ep.title)}</span>
+        <span class="epmeta">${ROLE_LABEL[ep.role] || ''}</span>
+        <button class="btn small danger" data-x="${esc(ep.id)}" title="Удалить эпизод">×</button>
+      </div>`).join('');
+    box.querySelectorAll('.epitem').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('[data-x]')) return;
+        selId = el.dataset.id;
+        renderCanvas();
+        renderInspector();
+      });
+    });
+    box.querySelectorAll('[data-x]').forEach(b => {
+      b.addEventListener('click', (e) => { e.stopPropagation(); deleteEpisode(b.dataset.x); });
+    });
+  }
+
+  // ---------- публикация с обложкой ----------
+  function firstReason(err) {
+    const lines = String(err.message || '').split('\n').map(l => l.replace(/^•\s*/, '').trim()).filter(Boolean);
+    const first = lines.length > 1 ? lines[1] : lines[0];
+    const more = lines.length > 2 ? ` (и ещё ${lines.length - 2})` : '';
+    return `Нельзя опубликовать: ${first || 'проверьте эпизоды'}${more}`;
+  }
+
+  function openPubModal() {
+    $('#pubErr').textContent = '';
+    $('#pubFile').value = '';
+    const img = $('#pubPrev');
+    if (P.cover) { img.src = P.cover; img.classList.remove('hidden'); }
+    else { img.removeAttribute('src'); img.classList.add('hidden'); }
+    $('#pubHint').textContent = P.seriesId
+      ? 'Обложка серии показывается на странице сериала. Необязательно, можно поменять позже.'
+      : 'Обложка (афиша) будет показана на главной странице. Необязательно, можно поменять позже.';
+    $('#pubModal').classList.remove('hidden');
+  }
+  function closePubModal() { $('#pubModal').classList.add('hidden'); }
+
+  async function unpublishSeries() {
+    try {
+      await api('POST', `/api/admin/projects/${PID}/unpublish`);
+      toast('Серия снята с публикации');
+    } catch (err) {
+      toast('Не удалось снять с публикации', true);
+    }
+    await reload();
+  }
+
+  $('#pubCancel').addEventListener('click', closePubModal);
+  $('#pubModal').addEventListener('click', (e) => { if (e.target.id === 'pubModal') closePubModal(); });
+  $('#pubFile').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    $('#pubErr').textContent = '';
+    if (f.size > 5 * 1024 * 1024) {
+      $('#pubErr').textContent = 'Файл больше 5 МБ';
+      e.target.value = '';
+      return;
+    }
+    const url = URL.createObjectURL(f);
+    const probe = new Image();
+    probe.onload = () => {
+      const w = probe.naturalWidth, h = probe.naturalHeight;
+      const ratio = w / h, A4 = Math.SQRT1_2;              // 210 / 297 ≈ 0.7071
+      if (Math.abs(ratio - A4) / A4 > 0.03) {
+        $('#pubErr').textContent = `Нужна обложка А4 (вертикальная). Ваш файл ${w}×${h}px.`;
+        e.target.value = '';
+        $('#pubPrev').classList.add('hidden');
+        URL.revokeObjectURL(url);
+        return;
+      }
+      const img = $('#pubPrev');
+      img.src = url;
+      img.classList.remove('hidden');
+    };
+    probe.onerror = () => {
+      $('#pubErr').textContent = 'Не удалось прочитать картинку';
+      e.target.value = '';
+      URL.revokeObjectURL(url);
+    };
+    probe.src = url;
+  });
+  $('#pubGo').addEventListener('click', async () => {
+    const btn = $('#pubGo');
+    btn.disabled = true;
+    $('#pubErr').textContent = '';
+    try {
+      const f = $('#pubFile').files[0];
+      if (f) {
+        const res = await fetch(`/api/admin/projects/${PID}/cover`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': f.type || 'image/jpeg' },
+          body: f
+        });
+        if (res.status === 401) { showLogin(); throw new Error('Сессия истекла, войдите снова'); }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Не удалось загрузить обложку');
+      }
+      await api('POST', `/api/admin/projects/${PID}/publish`);
+      closePubModal();
+      toast('Серия опубликована');
+    } catch (err) {
+      $('#pubErr').textContent = err.message.startsWith('Не удалось загрузить') || err.message.startsWith('Нужен файл') || err.message.startsWith('Сессия')
+        ? err.message : firstReason(err);
+      btn.disabled = false;
+      return;
+    }
+    btn.disabled = false;
+    await reload();
+  });
+
+  // ---------- таймлайн окна выбора ----------
+  let TL = null;      // { ep, dur, start, len }
+  let tlDrag = null;
+
+  function openTimeline(ep) {
+    const f = ep.fragmentId && P.fragments && P.fragments[ep.fragmentId];
+    if (!f || !f.duration) { toast('Сначала дождитесь загрузки видео: длительность пока неизвестна', true); return; }
+    const dur = f.duration;
+    const c = ep.choice;
+    const len = Math.min(c.duration || 10, dur);
+    const start = c.start == null ? Math.max(0, dur - len) : Math.min(c.start, dur - len);
+    TL = { ep, dur, start, len };
+    $('#tlErr').textContent = '';
+    $('#tlModal').classList.remove('hidden');
+    drawTimeline();
+  }
+
+  function drawTimeline() {
+    if (!TL) return;
+    const { dur, start, len } = TL;
+    const win = $('#tlWin');
+    win.style.left = (start / dur * 100) + '%';
+    win.style.width = (len / dur * 100) + '%';
+    const step = dur <= 20 ? 2 : dur <= 60 ? 5 : 10;
+    let html = '';
+    for (let t = 0; t <= dur; t += step) html += `<span style="left:${t / dur * 100}%">${t} с</span>`;
+    $('#tlTicks').innerHTML = html;
+    $('#tlInfo').innerHTML = `Кнопки появятся на <b>${start.toFixed(1)} с</b> и погаснут на <b>${(start + len).toFixed(1)} с</b>. ` +
+      `Окно ${len} с из ${dur.toFixed(1)} с видео.`;
+  }
+
+  function closeTimeline() { TL = null; tlDrag = null; $('#tlModal').classList.add('hidden'); }
+
+  $('#tlWin').addEventListener('mousedown', (e) => {
+    if (!TL || e.target.id === 'tlGrip') return;
+    tlDrag = { mode: 'move', sx: e.clientX, s0: TL.start, l0: TL.len };
+    e.preventDefault();
+  });
+  $('#tlGrip').addEventListener('mousedown', (e) => {
+    if (!TL) return;
+    tlDrag = { mode: 'grow', sx: e.clientX, s0: TL.start, l0: TL.len };
+    e.preventDefault();
+    e.stopPropagation();
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!tlDrag || !TL) return;
+    const width = $('#tl').getBoundingClientRect().width || 1;
+    const dt = (e.clientX - tlDrag.sx) / width * TL.dur;
+    if (tlDrag.mode === 'move') {
+      TL.start = clamp(Math.round((tlDrag.s0 + dt) * 10) / 10, 0, TL.dur - TL.len);
+    } else {
+      TL.len = clamp(Math.round(tlDrag.l0 + dt), 1, Math.min(30, Math.floor(TL.dur - TL.start)));
+    }
+    drawTimeline();
+  });
+  window.addEventListener('mouseup', () => { tlDrag = null; });
+  $('#tlCancel').addEventListener('click', closeTimeline);
+  $('#tlApply').addEventListener('click', () => {
+    if (!TL) return;
+    const ep = TL.ep;
+    if (!$('#fStart') || !$('#fDur')) { $('#tlErr').textContent = 'Эпизод не в режиме «С выбором»'; return; }
+    $('#fStart').value = TL.start;
+    $('#fDur').value = TL.len;
+    closeTimeline();
+    saveEpisode(ep);
+  });
+  $('#tlModal').addEventListener('click', (e) => { if (e.target.id === 'tlModal') closeTimeline(); });
+
+  // единая функция удаления: холст, список, инспектор и клавиша Delete
+  async function deleteEpisode(id) {
+    const ep = P && P.episodes[id];
+    if (!ep) return;
+    if (!confirm(`Удалить эпизод «${ep.title}»? Связи на него тоже будут сняты.`)) return;
+    try {
+      await api('DELETE', `/api/admin/projects/${PID}/episodes/${id}`);
+      if (selId === id) selId = null;
+      toast('Эпизод удалён');
+    } catch (err) {
+      toast(err.message, true);
+    }
+    await reload();
+  }
+
+  function fragTag(ep) {
+    if (!ep.fragmentId) return '<span class="tag warn">нет видео</span>';
+    const f = P.fragments && P.fragments[ep.fragmentId];
+    if (!f) return '<span class="tag err">видео потеряно</span>';
+    if (f.status === 'uploaded') return '<span class="tag">ждёт обработки</span>';
+    if (f.status === 'ready') return '<span class="tag ok">видео готово</span>';
+    if (f.status === 'error') return '<span class="tag err">ошибка кодирования</span>';
+    return '<span class="tag">кодируется…</span>';
+  }
+
+  function renderCanvas() {
+    const canvas = $('#canvas');
+    canvas.querySelectorAll('.node').forEach(n => n.remove());
+    epList().forEach(ep => {
+      const el = document.createElement('div');
+      el.className = 'node role-' + ep.role + (ep.id === selId ? ' sel' : '');
+      el.dataset.id = ep.id;
+      el.style.left = ep.x + 'px';
+      el.style.top = ep.y + 'px';
+      el.innerHTML = `<b>${esc(ep.title)}</b>
+        <div class="nt"><span>${ROLE_LABEL[ep.role] || ''}${ep.interactive ? ' · выбор' : ''}${ep.interactive && ep.choice.start != null ? ` · ${ep.choice.start}–${ep.choice.start + ep.choice.duration} с` : ''}</span>${fragTag(ep)}</div>`;
+      const xb = document.createElement('button');
+      xb.className = 'nodel';
+      xb.textContent = '×';
+      xb.title = 'Удалить эпизод';
+      xb.addEventListener('click', (ev) => { ev.stopPropagation(); deleteEpisode(ep.id); });
+      el.appendChild(xb);
+      el.addEventListener('mousedown', (e) => onNodeDown(e, ep.id, el));
+      canvas.appendChild(el);
+    });
+    drawEdges();
+    renderEpList();
+  }
+
+  // перетаскивание эпизода по холсту
+  function onNodeDown(e, id, el) {
+    if (e.button !== 0) return;
+    if (e.target.closest('.nodel')) return;
+    e.preventDefault();
+    const ep = P.episodes[id];
+    const sx = e.clientX, sy = e.clientY, ox = ep.x, oy = ep.y;
+    let moved = false;
+
+    function move(ev) {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+      moved = true;
+      ep.x = Math.round(clamp(ox + dx, 0, CANVAS_W - NODE_W));
+      ep.y = Math.round(clamp(oy + dy, 0, CANVAS_H - NODE_H));
+      el.style.left = ep.x + 'px';
+      el.style.top = ep.y + 'px';
+      drawEdges();
+    }
+    function up() {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      if (!moved) {
+        selId = id;
+        renderCanvas();
+        renderInspector();
+        return;
+      }
+      selId = id;
+      api('PATCH', `/api/admin/projects/${PID}/episodes/${id}`, { x: ep.x, y: ep.y })
+        .then(() => renderInspector())
+        .catch(err => toast(err.message, true));
+    }
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }
+
+  function drawEdges() {
+    const svg = $('#edges');
+    if (!svg || !P) return;
+    const eps = P.episodes;
+    const colors = { a: '#4A9EFF', b: '#A45CFF', t: '#8b93a8' };
+    let defs = '<defs>';
+    Object.keys(colors).forEach(k => {
+      defs += `<marker id="ar-${k}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0L10 5L0 10z" fill="${colors[k]}"/></marker>`;
+    });
+    defs += '</defs>';
+
+    let body = '';
+    epList().forEach(ep => {
+      const links = ep.interactive
+        ? [['A', ep.choice.A.target, 'a', false], ['B', ep.choice.B.target, 'b', false], ['⏱', ep.choice.timeoutTarget, 't', true]]
+        : [['', ep.next, 't', false]];
+      links.forEach(([label, target, k, dashed]) => {
+        const t = target && eps[target];
+        if (!t) return;
+        const x1 = ep.x + NODE_W, y1 = ep.y + NODE_H / 2;
+        const x2 = t.x, y2 = t.y + NODE_H / 2;
+        const d = `M${x1} ${y1} C${x1 + 70} ${y1}, ${x2 - 70} ${y2}, ${x2} ${y2}`;
+        const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+        body += `<path d="${d}" fill="none" stroke="${colors[k]}" stroke-width="2" ${dashed ? 'stroke-dasharray="6 5"' : ''} marker-end="url(#ar-${k})"/>`;
+        if (label) body += `<text x="${mx}" y="${my - 6}" fill="${colors[k]}" font-size="12" text-anchor="middle">${label}</text>`;
+      });
+    });
+    svg.innerHTML = defs + body;
+  }
+
+  // ---------- инспектор ----------
+  function renderInspector() {
+    const insp = $('#insp');
+    const ep = selId && P.episodes[selId];
+    if (!ep) {
+      insp.innerHTML = `<div class="muted">Выберите эпизод на холсте, чтобы настроить его.<br><br>
+        Эпизодов в проекте: ${epList().length}</div>`;
+      return;
+    }
+
+    const others = epList().filter(e => e.id !== ep.id);
+    const opts = (cur) => '<option value="">— не задано —</option>' +
+      others.map(o => `<option value="${o.id}" ${o.id === cur ? 'selected' : ''}>${esc(o.title)}</option>`).join('');
+    const f = ep.fragmentId && P.fragments && P.fragments[ep.fragmentId];
+    const durInfo = f && f.duration ? `Длительность видео: ${f.duration} с` : 'Сначала загрузите видео';
+    const c = ep.choice;
+
+    insp.innerHTML = `
+      <div class="ins-h">
+        <h4>Эпизод</h4>
+        <button class="btn small danger" id="delEp">Удалить</button>
+      </div>
+
+      <label class="field" for="fTitle">Название</label>
+      <input type="text" id="fTitle" maxlength="120" value="${esc(ep.title)}" />
+
+      <label class="field" for="fRole">Роль</label>
+      <select id="fRole">
+        ${Object.keys(ROLE_LABEL).map(r => `<option value="${r}" ${r === ep.role ? 'selected' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
+      </select>
+      <div class="muted" style="margin-top:6px;">Стартовый — один в серии, с него начинается просмотр. Конечный — финал, дальше переходов нет.</div>
+
+      <label class="field">Видео</label>
+      <div class="vid">${fragTag(ep)} <span class="muted">${durInfo}</span></div>
+      <label class="btn small" style="display:inline-block;margin-top:8px;cursor:pointer;">
+        Загрузить MP4 / MOV
+        <input type="file" id="fFile" accept=".mp4,.mov,video/mp4,video/quicktime" hidden />
+      </label>
+      <div class="muted" id="upProg"></div>
+
+      <label class="field">Переход</label>
+      <div class="mode">
+        <button type="button" data-mode="plain" class="${ep.interactive ? '' : 'on'}">Без выбора</button>
+        <button type="button" data-mode="choice" class="${ep.interactive ? 'on' : ''}">С выбором</button>
+      </div>
+
+      ${ep.interactive ? `
+        <div class="box">
+          <div class="row2">
+            <div>
+              <label class="field" for="fStart">Окно: начало, сек</label>
+              <input type="number" id="fStart" step="0.1" min="0" value="${c.start == null ? '' : c.start}" />
+            </div>
+            <div>
+              <label class="field" for="fDur">Длительность, сек</label>
+              <input type="number" id="fDur" min="1" max="30" value="${c.duration}" />
+            </div>
+          </div>
+          <div class="muted" style="margin-top:6px;">${durInfo}. Окно выбора до 30 секунд.</div>
+          <button class="btn small" type="button" id="openTl" style="margin-top:8px;">Редактировать на таймлайне</button>
+
+          <label class="field"><span class="lbl-a">Кнопка A</span> — текст</label>
+          <input type="text" id="fAt" maxlength="60" value="${esc(c.A.text)}" />
+          <label class="field">Кнопка A ведёт в</label>
+          <select id="fAto">${opts(c.A.target)}</select>
+
+          <label class="field"><span class="lbl-b">Кнопка Б</span> — текст</label>
+          <input type="text" id="fBt" maxlength="60" value="${esc(c.B.text)}" />
+          <label class="field">Кнопка Б ведёт в</label>
+          <select id="fBto">${opts(c.B.target)}</select>
+
+          <label class="field">Таймер: если не выбрали, ведёт в</label>
+          <select id="fTo">${opts(c.timeoutTarget)}</select>
+        </div>` : `
+        <label class="field" for="fNext">Дальше переходит в</label>
+        <select id="fNext">${opts(ep.next)}</select>`}
+
+      <div class="ins-foot"><button class="btn primary" id="saveEp">Сохранить эпизод</button></div>`;
+
+    bindInspector(ep);
+  }
+
+  function bindInspector(ep) {
+    $('#delEp').addEventListener('click', () => { deleteEpisode(ep.id); });
+    const ot = $('#openTl');
+    if (ot) ot.addEventListener('click', () => openTimeline(ep));
+
+    $('#fFile').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (file) uploadVideo(file, ep.id);
+    });
+
+    document.querySelectorAll('#insp [data-mode]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        ep.interactive = btn.dataset.mode === 'choice';   // только черновик, сохранится по кнопке
+        if (ep.interactive && ep.choice.start == null) {
+          const f = ep.fragmentId && P.fragments && P.fragments[ep.fragmentId];
+          if (f && f.duration) {
+            ep.choice.start = Math.max(0, Math.round((f.duration - ep.choice.duration) * 10) / 10);
+          }
+        }
+        renderCanvas();
+        renderInspector();
+      });
+    });
+
+    $('#saveEp').addEventListener('click', () => saveEpisode(ep));
+  }
+
+  function saveEpisode(ep) {
+    if (ep.interactive && $('#fStart').value === '') {
+      toast('Укажите, с какой секунды начинается окно выбора (поле «Окно: начало, сек»)', true);
+      return;
+    }
+    const body = {
+      title: $('#fTitle').value.trim() || ep.title,
+      role: $('#fRole').value,
+      interactive: $('#fRole').value === 'end' ? false : ep.interactive
+    };
+    body.interactive = body.interactive === true;
+    if (body.interactive) {
+      body.next = null;
+      body.choice = {
+        start: $('#fStart').value === '' ? null : Number($('#fStart').value),
+        duration: Number($('#fDur').value),
+        A: { text: $('#fAt').value, target: $('#fAto').value || null },
+        B: { text: $('#fBt').value, target: $('#fBto').value || null },
+        timeoutTarget: $('#fTo').value || null
+      };
+    } else {
+      body.next = $('#fNext').value || null;
+    }
+    act(() => api('PATCH', `/api/admin/projects/${PID}/episodes/${ep.id}`, body), 'Эпизод сохранён');
+  }
+
+  // ---------- загрузка видео по частям ----------
+
+  // ---------- привязка к сериалу ----------
+  function renderSeriesBox() {
+    const box = $('#serBox');
+    if (!box || !P) return;
+    if (P.id === ZAKRAY_ID) { box.innerHTML = ''; box.classList.add('hidden'); return; }
+    box.classList.remove('hidden');
+    const locked = !!P.published;
+    const num = Number(P.episodeNumber) || 0;
+    box.innerHTML = `
+      <span class="muted">Показывать в сериале:</span>
+      <select id="sSeries" ${locked ? 'disabled' : ''}>
+        <option value="">Отдельный ролик (на главной)</option>
+        <option value="${ZAKRAY_ID}" ${P.seriesId === ZAKRAY_ID ? 'selected' : ''}>За край</option>
+      </select>
+      <select id="sNum" ${locked ? 'disabled' : ''}>
+        <option value="">Серия…</option>
+        ${[1, 2, 3, 4].map(n => `<option value="${n}" ${num === n ? 'selected' : ''}>Серия ${n}</option>`).join('')}
+      </select>
+      <button class="btn small" id="sSave" ${locked ? 'disabled' : ''}>Сохранить привязку</button>
+      ${locked ? '<span class="muted">Снимите с публикации, чтобы изменить</span>' : ''}`;
+
+    const sSel = $('#sSeries'), sNum = $('#sNum');
+    const syncNum = () => { sNum.disabled = locked || !sSel.value; };
+    syncNum();
+    sSel.addEventListener('change', syncNum);
+    $('#sSave').addEventListener('click', () => {
+      const seriesId = sSel.value || null;
+      const episodeNumber = seriesId ? Number(sNum.value) : null;
+      if (seriesId && !episodeNumber) { toast('Выберите номер серии', true); return; }
+      act(() => api('PATCH', `/api/admin/projects/${PID}/series`, { seriesId, episodeNumber }),
+        seriesId ? 'Проект привязан к сериалу' : 'Проект отвязан от сериала');
+    });
+  }
+
+
+  // ---------- проблемы перед публикацией ----------
+  function renderProblems() {
+    // список проблем в редакторе скрыт: статус публикации показывает только кнопка
+    const box = $('#problems');
+    if (box) box.innerHTML = '';
+  }
+
+  // клавиша Delete / Backspace удаляет выбранный эпизод, если фокус не в поле ввода
+  document.addEventListener('keydown', (e) => {
+    if (!PID || !selId) return;
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      deleteEpisode(selId);
+    }
+  });
+
+  // ---------- старт: есть ли сессия ----------
+  (async function init() {
+    try {
+      await api('GET', '/api/admin/projects');
+      showApp();
+    } catch (e) {
+      showLogin();
+    }
+  })();
+})();
+</script>
+</body>
+</html>

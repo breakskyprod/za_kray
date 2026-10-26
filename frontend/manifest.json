@@ -1,0 +1,12 @@
+{
+  "name": "За край — интерактивный сериал",
+  "short_name": "За край",
+  "description": "Интерактивный сериал-антология о подростках",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0b1a",
+  "theme_color": "#0b0b1a",
+  "lang": "ru"
+}
